@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 function getConfiguredAppUrl(request: Request) {
@@ -30,7 +30,7 @@ export async function GET(request: Request) {
   }
 
   const code = requestUrl.searchParams.get("code");
-  const requestedNext = requestUrl.searchParams.get("next") || "/";
+  const requestedNext = requestUrl.searchParams.get("next") || "/chat";
   const next =
     requestedNext.startsWith("/") && !requestedNext.startsWith("//")
       ? requestedNext
@@ -56,3 +56,4 @@ export async function GET(request: Request) {
     );
   }
 }
+

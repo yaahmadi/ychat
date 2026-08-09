@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import { FormEvent, useMemo, useState } from "react";
@@ -105,7 +105,7 @@ export default function LoginPage() {
         if (signInError) throw signInError;
         if (!data.session) throw new Error("No login session was created.");
 
-        router.replace("/");
+        router.replace("/chat");
         router.refresh();
         return;
       }
@@ -124,7 +124,7 @@ export default function LoginPage() {
       if (signUpError) throw signUpError;
 
       if (data.session) {
-        router.replace("/");
+        router.replace("/chat");
         router.refresh();
         return;
       }
@@ -216,7 +216,7 @@ export default function LoginPage() {
         );
       }
 
-      router.replace("/");
+      router.replace("/chat");
       router.refresh();
     } catch (err) {
       setError(friendlyAuthError(err));
@@ -235,7 +235,7 @@ export default function LoginPage() {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: authCallbackUrl,
+          redirectTo: `${authCallbackUrl}?next=/chat`,
           queryParams: {
             prompt: "select_account",
           },
@@ -539,3 +539,4 @@ export default function LoginPage() {
     </main>
   );
 }
+
