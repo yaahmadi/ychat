@@ -439,7 +439,15 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
       .channel(`call-user:${userId}`)
       .on("broadcast", { event: "call_invite" }, ({ payload }) => {
         const invite = payload as CallInvite;
-        if (!invite?.callId || invite.callerId === userId || activeCallRef.current) return;
+        if (!invite?.callId || invite.callerId === userId) return;
+        if (activeCallRef.current) {
+          void sendPersonalBroadcast(invite.callerId, "call_busy", {
+            callId: invite.callId,
+            userId,
+            displayName,
+          }).catch(() => undefined);
+          return;
+        }
         setIncomingCall(invite);
         if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
           new Notification(`${invite.mode === "video" ? "Video" : "Voice"} call from ${invite.callerName}`, {
@@ -452,6 +460,13 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
         const declined = payload as { callId?: string; userId?: string };
         if (declined.callId === activeCallRef.current?.callId && declined.userId) {
           closePeer(declined.userId);
+          setCallError("Call declined.");
+        }
+      })
+      .on("broadcast", { event: "call_busy" }, ({ payload }) => {
+        const busy = payload as { callId?: string; displayName?: string };
+        if (busy.callId === activeCallRef.current?.callId) {
+          setCallError(`${busy.displayName || "User"} is busy.`);
         }
       })
       .on("broadcast", { event: "call_cancelled" }, ({ payload }) => {
@@ -463,7 +478,7 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
     return () => {
       void supabase.removeChannel(personal);
     };
-  }, [closePeer, userId]);
+  }, [closePeer, displayName, userId]);
 
   useEffect(() => {
     const peers = peersRef.current;
