@@ -336,6 +336,33 @@ create table if not exists public.story_comments (
 
 create index if not exists story_comments_story_created_idx on public.story_comments(story_id, created_at);
 
+create table if not exists public.conversation_user_settings (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  conversation_id uuid not null references public.conversations(id) on delete cascade,
+  archived_at timestamptz,
+  deleted_at timestamptz,
+  muted_until timestamptz,
+  pinned_at timestamptz,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, conversation_id)
+);
+
+create table if not exists public.call_logs (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  conversation_id uuid references public.conversations(id) on delete set null,
+  title text not null,
+  mode text not null check (mode in ('audio', 'video')),
+  direction text not null check (direction in ('incoming', 'outgoing', 'missed')),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists conversation_user_settings_user_idx
+on public.conversation_user_settings(user_id, updated_at desc);
+
+create index if not exists call_logs_user_created_idx
+on public.call_logs(user_id, created_at desc);
+
 -- ============================================================
 -- DROP LEGACY + CURRENT POLICIES SO THIS FILE IS IDEMPOTENT
 -- ============================================================
@@ -391,6 +418,13 @@ drop policy if exists contacts_delete_own on public.contacts;
 drop policy if exists story_comments_read_contacts on public.story_comments;
 drop policy if exists story_comments_create_contacts on public.story_comments;
 
+drop policy if exists conversation_user_settings_own_read on public.conversation_user_settings;
+drop policy if exists conversation_user_settings_own_write on public.conversation_user_settings;
+
+drop policy if exists call_logs_own_read on public.call_logs;
+drop policy if exists call_logs_own_insert on public.call_logs;
+drop policy if exists call_logs_own_delete on public.call_logs;
+
 -- ============================================================
 -- RLS
 -- ============================================================
@@ -403,6 +437,8 @@ alter table public.message_reads enable row level security;
 alter table public.stories enable row level security;
 alter table public.contacts enable row level security;
 alter table public.story_comments enable row level security;
+alter table public.conversation_user_settings enable row level security;
+alter table public.call_logs enable row level security;
 
 create policy contacts_read_own
 on public.contacts for select to authenticated
@@ -561,6 +597,33 @@ with check (
   )
 );
 
+create policy conversation_user_settings_own_read
+on public.conversation_user_settings for select to authenticated
+using (user_id = auth.uid());
+
+create policy conversation_user_settings_own_write
+on public.conversation_user_settings for all to authenticated
+using (user_id = auth.uid())
+with check (
+  user_id = auth.uid()
+  and public.is_conversation_member(conversation_id)
+);
+
+create policy call_logs_own_read
+on public.call_logs for select to authenticated
+using (user_id = auth.uid());
+
+create policy call_logs_own_insert
+on public.call_logs for insert to authenticated
+with check (
+  user_id = auth.uid()
+  and (conversation_id is null or public.is_conversation_member(conversation_id))
+);
+
+create policy call_logs_own_delete
+on public.call_logs for delete to authenticated
+using (user_id = auth.uid());
+
 -- ============================================================
 -- KEEP CONVERSATION SORT ORDER CURRENT
 -- ============================================================
@@ -588,7 +651,7 @@ do $$
 declare
   realtime_table text;
 begin
-  foreach realtime_table in array array['messages', 'conversations', 'conversation_members', 'profiles', 'attachments', 'stories', 'contacts', 'story_comments']
+  foreach realtime_table in array array['messages', 'conversations', 'conversation_members', 'profiles', 'attachments', 'stories', 'contacts', 'story_comments', 'conversation_user_settings', 'call_logs']
   loop
     if not exists (
       select 1 from pg_publication_tables
@@ -699,7 +762,7 @@ using (bucket_id = 'profile-media' and split_part(name, '/', 1) = auth.uid()::te
 select tablename, policyname, cmd
 from pg_policies
 where schemaname = 'public'
-  and tablename in ('profiles','conversations','conversation_members','messages','attachments','message_reads','stories','contacts','story_comments')
+  and tablename in ('profiles','conversations','conversation_members','messages','attachments','message_reads','stories','contacts','story_comments','conversation_user_settings','call_logs')
 order by tablename, policyname;
 
 select routine_name
