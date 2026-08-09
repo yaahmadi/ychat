@@ -4,6 +4,28 @@
 create extension if not exists "uuid-ossp";
 
 alter table public.profiles add column if not exists phone_number text;
+alter table public.profiles add column if not exists email_address text;
+alter table public.profiles add column if not exists contact_code text;
+
+update public.profiles
+set contact_code = lower(substr(replace(id::text, '-', ''), 1, 10))
+where contact_code is null or contact_code = '';
+
+update public.profiles p
+set email_address = lower(u.email)
+from auth.users u
+where p.id = u.id
+  and p.email_address is null
+  and u.email is not null;
+
+create unique index if not exists profiles_contact_code_key on public.profiles(contact_code);
+create index if not exists profiles_email_address_idx on public.profiles(lower(email_address));
+create index if not exists profiles_username_lookup_idx on public.profiles(lower(username));
+
+alter table if exists public.messages drop constraint if exists messages_message_type_check;
+alter table if exists public.messages
+add constraint messages_message_type_check
+check (message_type in ('text', 'code', 'image', 'video', 'file', 'voice', 'sticker'));
 
 -- ============================================================
 -- AUTH PROFILE TRIGGER
@@ -36,7 +58,7 @@ begin
     final_username := left(base_username, 22) || '_' || left(replace(new.id::text, '-', ''), 6);
   end if;
 
-  insert into public.profiles (id, display_name, username, avatar_url, phone_number, role, status, last_seen)
+  insert into public.profiles (id, display_name, username, avatar_url, phone_number, email_address, contact_code, role, status, last_seen)
   values (
     new.id,
     coalesce(
@@ -48,6 +70,8 @@ begin
     final_username,
     coalesce(new.raw_user_meta_data->>'avatar_url', new.raw_user_meta_data->>'picture'),
     new.phone,
+    lower(new.email),
+    lower(substr(replace(new.id::text, '-', ''), 1, 10)),
     'user',
     'offline',
     now()
@@ -55,7 +79,9 @@ begin
   on conflict (id) do update set
     display_name = coalesce(nullif(excluded.display_name, ''), public.profiles.display_name),
     avatar_url = coalesce(excluded.avatar_url, public.profiles.avatar_url),
-    phone_number = coalesce(excluded.phone_number, public.profiles.phone_number);
+    phone_number = coalesce(excluded.phone_number, public.profiles.phone_number),
+    email_address = coalesce(excluded.email_address, public.profiles.email_address),
+    contact_code = coalesce(public.profiles.contact_code, excluded.contact_code);
 
   return new;
 end;
@@ -190,6 +216,86 @@ $$;
 revoke all on function public.create_group_conversation(text, uuid[]) from public;
 grant execute on function public.create_group_conversation(text, uuid[]) to authenticated;
 
+create table if not exists public.contacts (
+  owner_id uuid not null references auth.users(id) on delete cascade,
+  contact_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (owner_id, contact_id),
+  check (owner_id <> contact_id)
+);
+
+-- ============================================================
+-- CONTACT DISCOVERY RPCS
+-- ============================================================
+create or replace function public.get_contact_profiles()
+returns setof public.profiles
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select p.*
+  from public.profiles p
+  where p.id = auth.uid()
+     or exists (
+       select 1 from public.contacts c
+       where c.owner_id = auth.uid()
+         and c.contact_id = p.id
+     )
+  order by p.display_name;
+$$;
+
+revoke all on function public.get_contact_profiles() from public;
+grant execute on function public.get_contact_profiles() to authenticated;
+
+create or replace function public.add_contact_by_lookup(lookup text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  clean text := lower(trim(lookup));
+  target_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  if clean = '' then
+    raise exception 'Enter an email, username, or Ychat ID';
+  end if;
+
+  select p.id into target_id
+  from public.profiles p
+  where lower(coalesce(p.contact_code, '')) = clean
+     or lower(coalesce(p.username, '')) = clean
+     or lower(coalesce(p.email_address, '')) = clean
+  limit 1;
+
+  if target_id is null then
+    raise exception 'No Ychat user found for this ID or email';
+  end if;
+
+  if target_id = auth.uid() then
+    raise exception 'You cannot add yourself';
+  end if;
+
+  insert into public.contacts(owner_id, contact_id)
+  values (auth.uid(), target_id)
+  on conflict do nothing;
+
+  insert into public.contacts(owner_id, contact_id)
+  values (target_id, auth.uid())
+  on conflict do nothing;
+
+  return target_id;
+end;
+$$;
+
+revoke all on function public.add_contact_by_lookup(text) from public;
+grant execute on function public.add_contact_by_lookup(text) to authenticated;
+
 -- ============================================================
 -- STORIES / STATUS (24 HOURS)
 -- ============================================================
@@ -219,6 +325,16 @@ alter table public.stories add constraint stories_content_check check (
 
 create index if not exists stories_user_created_idx on public.stories(user_id, created_at desc);
 create index if not exists stories_expires_idx on public.stories(expires_at);
+
+create table if not exists public.story_comments (
+  id uuid primary key default uuid_generate_v4(),
+  story_id uuid not null references public.stories(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  body text not null check (length(trim(body)) between 1 and 500),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists story_comments_story_created_idx on public.story_comments(story_id, created_at);
 
 -- ============================================================
 -- DROP LEGACY + CURRENT POLICIES SO THIS FILE IS IDEMPOTENT
@@ -266,6 +382,14 @@ drop policy if exists message_reads_update on public.message_reads;
 drop policy if exists stories_read_authenticated on public.stories;
 drop policy if exists stories_create_own on public.stories;
 drop policy if exists stories_delete_own on public.stories;
+drop policy if exists stories_read_contacts on public.stories;
+
+drop policy if exists contacts_read_own on public.contacts;
+drop policy if exists contacts_create_own on public.contacts;
+drop policy if exists contacts_delete_own on public.contacts;
+
+drop policy if exists story_comments_read_contacts on public.story_comments;
+drop policy if exists story_comments_create_contacts on public.story_comments;
 
 -- ============================================================
 -- RLS
@@ -277,10 +401,31 @@ alter table public.messages enable row level security;
 alter table public.attachments enable row level security;
 alter table public.message_reads enable row level security;
 alter table public.stories enable row level security;
+alter table public.contacts enable row level security;
+alter table public.story_comments enable row level security;
 
-create policy profiles_read_authenticated
+create policy contacts_read_own
+on public.contacts for select to authenticated
+using (owner_id = auth.uid());
+
+create policy contacts_create_own
+on public.contacts for insert to authenticated
+with check (owner_id = auth.uid());
+
+create policy contacts_delete_own
+on public.contacts for delete to authenticated
+using (owner_id = auth.uid());
+
+create policy profiles_read_contacts
 on public.profiles for select to authenticated
-using (true);
+using (
+  id = auth.uid()
+  or exists (
+    select 1 from public.contacts c
+    where c.owner_id = auth.uid()
+      and c.contact_id = profiles.id
+  )
+);
 
 create policy profiles_update_self
 on public.profiles for update to authenticated
@@ -357,9 +502,19 @@ on public.message_reads for update to authenticated
 using (user_id = auth.uid())
 with check (user_id = auth.uid());
 
-create policy stories_read_authenticated
+create policy stories_read_contacts
 on public.stories for select to authenticated
-using (expires_at > now());
+using (
+  expires_at > now()
+  and (
+    user_id = auth.uid()
+    or exists (
+      select 1 from public.contacts c
+      where c.owner_id = auth.uid()
+        and c.contact_id = stories.user_id
+    )
+  )
+);
 
 create policy stories_create_own
 on public.stories for insert to authenticated
@@ -368,6 +523,43 @@ with check (user_id = auth.uid() and expires_at > now());
 create policy stories_delete_own
 on public.stories for delete to authenticated
 using (user_id = auth.uid());
+
+create policy story_comments_read_contacts
+on public.story_comments for select to authenticated
+using (
+  exists (
+    select 1
+    from public.stories s
+    where s.id = story_comments.story_id
+      and (
+        s.user_id = auth.uid()
+        or exists (
+          select 1 from public.contacts c
+          where c.owner_id = auth.uid()
+            and c.contact_id = s.user_id
+        )
+      )
+  )
+);
+
+create policy story_comments_create_contacts
+on public.story_comments for insert to authenticated
+with check (
+  user_id = auth.uid()
+  and exists (
+    select 1
+    from public.stories s
+    where s.id = story_comments.story_id
+      and (
+        s.user_id = auth.uid()
+        or exists (
+          select 1 from public.contacts c
+          where c.owner_id = auth.uid()
+            and c.contact_id = s.user_id
+        )
+      )
+  )
+);
 
 -- ============================================================
 -- KEEP CONVERSATION SORT ORDER CURRENT
@@ -396,7 +588,7 @@ do $$
 declare
   realtime_table text;
 begin
-  foreach realtime_table in array array['messages', 'conversations', 'conversation_members', 'profiles', 'attachments', 'stories']
+  foreach realtime_table in array array['messages', 'conversations', 'conversation_members', 'profiles', 'attachments', 'stories', 'contacts', 'story_comments']
   loop
     if not exists (
       select 1 from pg_publication_tables
@@ -502,5 +694,11 @@ using (bucket_id = 'profile-media' and split_part(name, '/', 1) = auth.uid()::te
 select tablename, policyname, cmd
 from pg_policies
 where schemaname = 'public'
-  and tablename in ('profiles','conversations','conversation_members','messages','attachments','message_reads','stories')
+  and tablename in ('profiles','conversations','conversation_members','messages','attachments','message_reads','stories','contacts','story_comments')
 order by tablename, policyname;
+
+select routine_name
+from information_schema.routines
+where routine_schema = 'public'
+  and routine_name in ('get_contact_profiles', 'add_contact_by_lookup', 'start_direct_conversation', 'create_group_conversation')
+order by routine_name;
