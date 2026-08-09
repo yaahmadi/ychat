@@ -17,6 +17,14 @@ function isMissingSchemaFunction(error: unknown) {
   return message.includes("schema cache") || message.includes("could not find the function");
 }
 
+function isMissingSchemaObject(error: unknown) {
+  const message = errorMessage(error).toLowerCase();
+  return message.includes("schema cache")
+    || message.includes("does not exist")
+    || message.includes("could not find")
+    || message.includes("not found");
+}
+
 async function pause(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -321,6 +329,7 @@ export async function getStoryComments(storyId: string) {
     .select("*")
     .eq("story_id", storyId)
     .order("created_at", { ascending: true });
+  if (isMissingSchemaObject(error)) return [];
   if (error) throw error;
   return data as StoryCommentRow[];
 }
@@ -335,6 +344,9 @@ export async function createStoryComment(storyId: string, body: string) {
     .insert({ story_id: storyId, user_id: userId, body: clean })
     .select("*")
     .single();
+  if (isMissingSchemaObject(error)) {
+    throw new Error("Story comments need the latest Ychat database update before they can be used.");
+  }
   if (error) throw error;
   return data as StoryCommentRow;
 }
