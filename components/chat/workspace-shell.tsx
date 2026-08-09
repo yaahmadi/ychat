@@ -22,7 +22,6 @@ import {
   MessageSquare,
   Mic,
   MoreVertical,
-  Paperclip,
   Phone,
   Plus,
   Search,
@@ -32,6 +31,7 @@ import {
   Smile,
   Sparkles,
   Square,
+  Trash2,
   Users,
   Video,
   Wifi,
@@ -66,19 +66,20 @@ import type {
   ProfileRow,
 } from "@/lib/supabase/types";
 
-type ViewName = "chats" | "stories" | "groups" | "people" | "files" | "admin" | "settings";
+type ViewName = "stories" | "calls" | "chats" | "people" | "groups" | "files" | "admin" | "settings";
 
 const navItems: Array<{ id: ViewName; label: string; icon: typeof MessageSquare }> = [
+  { id: "stories", label: "Story", icon: CircleDashed },
+  { id: "calls", label: "Calls", icon: Phone },
   { id: "chats", label: "Chats", icon: MessageSquare },
-  { id: "stories", label: "Stories", icon: CircleDashed },
-  { id: "groups", label: "Groups", icon: Group },
-  { id: "people", label: "People", icon: Users },
+  { id: "people", label: "Contacts", icon: Users },
+  { id: "groups", label: "Group", icon: Group },
   { id: "files", label: "Files", icon: Files },
   { id: "admin", label: "Admin", icon: LockKeyhole },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
-const mobileNavItems = navItems.filter(({ id }) => ["chats", "stories", "people", "groups", "settings"].includes(id));
+const mobileNavItems = navItems.filter(({ id }) => ["stories", "calls", "chats", "people", "groups", "settings"].includes(id));
 
 const EMOJIS = [
   "😀", "😂", "😊", "😍", "🥰", "😎", "🤔", "😅", "😭", "😡", "👍", "👎",
@@ -87,6 +88,14 @@ const EMOJIS = [
 ];
 
 const STICKERS = ["👍", "❤️", "😂", "🎉", "🔥", "🚀", "💯", "👏", "🤝", "🫡", "✅", "☕"];
+
+type CallLogEntry = {
+  id: string;
+  title: string;
+  mode: CallMode;
+  direction: "incoming" | "outgoing" | "missed";
+  createdAt: string;
+};
 
 function initials(name?: string | null) {
   return (name?.trim()?.slice(0, 1) || "U").toUpperCase();
@@ -253,11 +262,21 @@ export function WorkspaceShell() {
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [stickerOpen, setStickerOpen] = useState(false);
+  const [plusOpen, setPlusOpen] = useState(false);
   const [installReady, setInstallReady] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<string>("default");
   const [profileName, setProfileName] = useState("");
   const [profileUsername, setProfileUsername] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
+  const [callLogs, setCallLogs] = useState<CallLogEntry[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = window.localStorage.getItem("ychat:call-logs");
+      return saved ? (JSON.parse(saved) as CallLogEntry[]) : [];
+    } catch {
+      return [];
+    }
+  });
 
   async function refreshConversations(preferredId?: string) {
     const { data, error: conversationsError } = await getConversations();
@@ -421,6 +440,10 @@ export function WorkspaceShell() {
     return () => window.removeEventListener("yama:pwa-install-ready", onReady);
   }, []);
 
+  useEffect(() => {
+    window.localStorage.setItem("ychat:call-logs", JSON.stringify(callLogs.slice(0, 80)));
+  }, [callLogs]);
+
   const currentProfile = useMemo(() => profiles.find((profile) => profile.id === userId) ?? null, [profiles, userId]);
 
   const otherProfiles = useMemo(() => profiles.filter((profile) => profile.id !== userId), [profiles, userId]);
@@ -469,18 +492,41 @@ export function WorkspaceShell() {
 
   const call = useWebRtcCall(userId, currentProfile?.display_name || "User");
 
+  function logCall(entry: Omit<CallLogEntry, "id" | "createdAt">) {
+    setCallLogs((current) => [
+      { ...entry, id: crypto.randomUUID(), createdAt: new Date().toISOString() },
+      ...current,
+    ].slice(0, 80));
+  }
+
   async function beginCall(mode: CallMode) {
     if (!activeConversation) return;
+    const title = getConversationName(activeConversation);
     try {
       await call.startCall({
         conversationId: activeConversation.id,
-        conversationTitle: getConversationName(activeConversation),
+        conversationTitle: title,
         mode,
         memberIds: activeConversation.conversation_members?.map((member) => member.user_id) ?? [],
       });
+      logCall({ title, mode, direction: "outgoing" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to start call.");
     }
+  }
+
+  async function acceptIncomingCall() {
+    if (call.incomingCall) {
+      logCall({ title: call.incomingCall.conversationTitle, mode: call.incomingCall.mode, direction: "incoming" });
+    }
+    await call.acceptCall();
+  }
+
+  function declineIncomingCall() {
+    if (call.incomingCall) {
+      logCall({ title: call.incomingCall.conversationTitle, mode: call.incomingCall.mode, direction: "missed" });
+    }
+    void call.declineCall();
   }
 
   function selectConversation(conversationId: string) {
@@ -490,6 +536,7 @@ export function WorkspaceShell() {
     setView("chats");
     setEmojiOpen(false);
     setStickerOpen(false);
+    setPlusOpen(false);
   }
 
   async function handleSend(messageType: string = "text", overrideBody?: string) {
@@ -506,6 +553,7 @@ export function WorkspaceShell() {
       }
       if (!overrideBody) setDraft("");
       setStickerOpen(false);
+      setPlusOpen(false);
       await refreshConversations(activeConversationId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to send message.");
@@ -545,6 +593,29 @@ export function WorkspaceShell() {
       setError(err instanceof Error ? err.message : "Unable to add contact.");
     } finally {
       setAddingContact(false);
+    }
+  }
+
+  async function handlePickPhoneContact() {
+    type ContactPicker = {
+      select: (
+        properties: Array<"name" | "email" | "tel">,
+        options?: { multiple?: boolean },
+      ) => Promise<Array<{ name?: string[]; email?: string[]; tel?: string[] }>>;
+    };
+    const contacts = (navigator as Navigator & { contacts?: ContactPicker }).contacts;
+    if (!contacts?.select) {
+      setError("Phonebook contact picker is only available in supported mobile browsers. You can still add by email, username, or Ychat ID.");
+      return;
+    }
+    try {
+      const picked = await contacts.select(["name", "email", "tel"], { multiple: false });
+      const contact = picked[0];
+      const lookup = contact?.email?.[0] || contact?.tel?.[0] || contact?.name?.[0] || "";
+      if (lookup) setContactLookup(lookup);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      setError(err instanceof Error ? err.message : "Unable to read phonebook contact.");
     }
   }
 
@@ -733,8 +804,8 @@ export function WorkspaceShell() {
       {call.incomingCall && !call.activeCall && (
         <IncomingCallCard
           invite={call.incomingCall}
-          onDecline={() => void call.declineCall()}
-          onAccept={() => void call.acceptCall().catch((err) => setError(err instanceof Error ? err.message : "Unable to accept call."))}
+          onDecline={declineIncomingCall}
+          onAccept={() => void acceptIncomingCall().catch((err) => setError(err instanceof Error ? err.message : "Unable to accept call."))}
         />
       )}
       {call.activeCall && (
@@ -806,10 +877,30 @@ export function WorkspaceShell() {
             </div>
           )}
 
+          {view === "calls" && (
+            <Page title="Calls" subtitle="Missed and recent Ychat calls." action={callLogs.length > 0 ? <button type="button" onClick={() => setCallLogs([])} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:border-rose-400/40 hover:text-rose-200">Clear all</button> : undefined}>
+              <div className="space-y-2">
+                {callLogs.map((item) => (
+                  <div key={item.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0a1b2d] p-4">
+                    <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${item.direction === "missed" ? "bg-rose-500/15 text-rose-300" : "bg-cyan-500/15 text-cyan-200"}`}>
+                      {item.mode === "video" ? <Video className="h-5 w-5" /> : <Phone className="h-5 w-5" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold">{item.title}</p>
+                      <p className={`mt-0.5 text-xs ${item.direction === "missed" ? "text-rose-300" : "text-slate-500"}`}>{item.direction === "outgoing" ? "Outgoing" : item.direction === "incoming" ? "Incoming" : "Missed"} {item.mode} call · {formatTime(item.createdAt)}</p>
+                    </div>
+                    <button type="button" onClick={() => setCallLogs((current) => current.filter((log) => log.id !== item.id))} className="rounded-full p-2 text-slate-500 hover:bg-white/5 hover:text-rose-200" title="Delete call"><Trash2 className="h-4 w-4" /></button>
+                  </div>
+                ))}
+              </div>
+              {callLogs.length === 0 && <Empty icon={<Phone className="h-8 w-8" />} title="No calls yet" text="Voice and video calls will appear here as recent and missed calls." />}
+            </Page>
+          )}
+
           {view === "chats" && (
             <div className="flex min-h-0 flex-1">
               <aside className={`${activeConversationId ? "hidden md:flex" : "flex"} w-full shrink-0 flex-col border-r border-white/10 bg-[#071827] md:w-[360px] lg:w-[390px]`}>
-                <div className="border-b border-white/10 px-4 pb-3 pt-4">
+                <div className="border-b border-white/10 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))]">
                   <div className="flex items-center gap-3">
                     <Image src="/brand/yama-logo.png" alt="Yama Ahmadi Services Informatiques" width={150} height={54} className="h-10 w-auto object-contain object-left" priority />
                     <div className="ml-auto flex gap-1">
@@ -830,6 +921,7 @@ export function WorkspaceShell() {
                       <input value={contactLookup} onChange={(event) => setContactLookup(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void handleAddContact(); }} placeholder="Email, username or Ychat ID" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#102438] px-3 py-2 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-500/30" />
                       <button type="button" onClick={() => void handleAddContact()} disabled={!contactLookup.trim() || addingContact} className="rounded-xl bg-cyan-500 px-3 text-sm font-semibold text-slate-950 disabled:opacity-40">Add</button>
                     </div>
+                    <button type="button" onClick={() => void handlePickPhoneContact()} className="mb-3 w-full rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300 hover:border-cyan-400/30 hover:text-cyan-200">Choose from phonebook</button>
                     <div className="max-h-56 space-y-1 overflow-y-auto ychat-scrollbar">
                       {otherProfiles.map((profile) => (
                         <button key={profile.id} type="button" disabled={creatingChat === profile.id} onClick={() => void handleStartChat(profile.id)} className="flex w-full items-center gap-3 rounded-xl p-2.5 text-left hover:bg-white/5 disabled:opacity-50">
@@ -863,7 +955,7 @@ export function WorkspaceShell() {
               <section className={`${activeConversationId ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col bg-[#06101d]`}>
                 {activeConversation ? (
                   <>
-                    <header className="flex h-[68px] shrink-0 items-center gap-3 border-b border-white/10 bg-[#091a2b] px-3 pt-[env(safe-area-inset-top)] sm:px-4">
+                    <header className="flex min-h-[68px] shrink-0 items-center gap-3 border-b border-white/10 bg-[#091a2b] px-3 pb-2 pt-[max(.5rem,env(safe-area-inset-top))] sm:px-4">
                       <button type="button" onClick={() => setActiveConversationId(null)} className="rounded-full p-2 text-slate-400 md:hidden"><ChevronLeft className="h-5 w-5" /></button>
                       {activeConversation.type === "group" ? <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-500/15 text-cyan-200"><Users className="h-5 w-5" /></div> : <Avatar profile={getConversationProfile(activeConversation)} size="sm" />}
                       <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-semibold">{getConversationName(activeConversation)}</p><p className="truncate text-xs text-slate-500">{activeConversation.type === "group" ? activeMembers.map((member) => member.display_name).join(", ") : isProfileOnline(getConversationProfile(activeConversation)) ? "online" : "secure conversation"}</p></div>
@@ -896,6 +988,13 @@ export function WorkspaceShell() {
                     </div>
 
                     <div className="relative shrink-0 border-t border-white/10 bg-[#091a2b] px-2 py-2 sm:px-3">
+                      {plusOpen && (
+                        <div className="absolute bottom-[72px] left-3 z-30 w-[280px] max-w-[calc(100vw-24px)] rounded-2xl border border-white/10 bg-[#0b1c2f] p-2 shadow-2xl">
+                          <button type="button" onClick={() => { fileInputRef.current?.click(); setPlusOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-200 hover:bg-white/5"><Plus className="h-5 w-5 text-cyan-300" /> Photo, video or file</button>
+                          <button type="button" onClick={() => { setStickerOpen(true); setEmojiOpen(false); setPlusOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-200 hover:bg-white/5"><Sparkles className="h-5 w-5 text-cyan-300" /> Stickers</button>
+                          <button type="button" onClick={() => { setEmojiOpen(true); setStickerOpen(false); setPlusOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-200 hover:bg-white/5"><Smile className="h-5 w-5 text-cyan-300" /> Emoji</button>
+                        </div>
+                      )}
                       {emojiOpen && (
                         <div className="absolute bottom-[72px] left-3 z-30 w-[310px] max-w-[calc(100vw-24px)] rounded-2xl border border-white/10 bg-[#0b1c2f] p-3 shadow-2xl">
                           <div className="mb-2 flex items-center justify-between"><span className="text-xs font-semibold text-slate-400">Emoji</span><button type="button" onClick={() => setEmojiOpen(false)}><X className="h-4 w-4 text-slate-500" /></button></div>
@@ -910,9 +1009,7 @@ export function WorkspaceShell() {
                       )}
 
                       <div className="mx-auto flex max-w-5xl items-end gap-1.5">
-                        <button type="button" onClick={() => { setEmojiOpen((current) => !current); setStickerOpen(false); }} className="mb-1 rounded-full p-2.5 text-slate-400 hover:bg-white/5 hover:text-cyan-200" title="Emoji"><Smile className="h-5 w-5" /></button>
-                        <button type="button" onClick={() => { setStickerOpen((current) => !current); setEmojiOpen(false); }} className="mb-1 rounded-full p-2.5 text-slate-400 hover:bg-white/5 hover:text-cyan-200" title="Stickers"><Sparkles className="h-5 w-5" /></button>
-                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="mb-1 rounded-full p-2.5 text-slate-400 hover:bg-white/5 hover:text-cyan-200 disabled:opacity-40" title="Attach file"><Paperclip className="h-5 w-5" /></button>
+                        <button type="button" onClick={() => { setPlusOpen((current) => !current); setEmojiOpen(false); setStickerOpen(false); }} disabled={uploading} className="mb-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-white/5 hover:text-cyan-200 disabled:opacity-40" title="Add attachment or sticker"><Plus className="h-5 w-5" /></button>
                         <input ref={fileInputRef} type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt" className="hidden" onChange={handleFileChange} />
 
                         {recording ? (
@@ -953,12 +1050,13 @@ export function WorkspaceShell() {
           )}
 
           {view === "people" && (
-            <Page title="People" subtitle={`${otherProfiles.length} contacts`}>
+            <Page title="Contacts" subtitle={`${otherProfiles.length} Ychat contacts`}>
               <div className="mb-5 rounded-2xl border border-white/10 bg-[#0a1b2d] p-4">
                 <p className="text-sm font-semibold">Add a contact</p>
-                <p className="mt-1 text-xs text-slate-500">Only contacts you add can appear here. Ask them for their Ychat ID, username, or email.</p>
+                <p className="mt-1 text-xs text-slate-500">Search by email, username, Ychat ID, or pick from your phonebook. Only people using Ychat are shown.</p>
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                   <input value={contactLookup} onChange={(event) => setContactLookup(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void handleAddContact(); }} placeholder="Email, username or Ychat ID" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-500/30" />
+                  <button type="button" onClick={() => void handlePickPhoneContact()} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:border-cyan-400/30 hover:text-cyan-200">Phonebook</button>
                   <button type="button" onClick={() => void handleAddContact()} disabled={!contactLookup.trim() || addingContact} className="rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950 disabled:opacity-40">{addingContact ? "Adding..." : "Add contact"}</button>
                 </div>
               </div>
@@ -1021,8 +1119,8 @@ export function WorkspaceShell() {
             </Page>
           )}
 
-          <nav className="flex h-[calc(64px+env(safe-area-inset-bottom))] shrink-0 overflow-x-auto border-t border-white/10 bg-[#07111f] pb-[env(safe-area-inset-bottom)] lg:hidden ychat-scrollbar">
-            {mobileNavItems.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => navigateView(id)} className={`flex min-w-[64px] flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px] ${view === id ? "text-cyan-300" : "text-slate-500"}`}><Icon className="h-5 w-5" />{label}</button>)}
+          <nav className="grid h-[calc(64px+env(safe-area-inset-bottom))] grid-cols-6 shrink-0 border-t border-white/10 bg-[#07111f] pb-[env(safe-area-inset-bottom)] lg:hidden">
+            {mobileNavItems.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => navigateView(id)} className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] leading-tight ${view === id ? "text-cyan-300" : "text-slate-500"}`}><Icon className="h-5 w-5" /><span className="max-w-full truncate">{label}</span></button>)}
           </nav>
         </main>
       </div>
@@ -1031,7 +1129,7 @@ export function WorkspaceShell() {
 }
 
 function Page({ title, subtitle, action, children }: { title: string; subtitle: string; action?: ReactNode; children: ReactNode }) {
-  return <div className="min-h-0 flex-1 overflow-y-auto bg-[#06101d] p-4 pb-24 sm:p-6 lg:p-8"><div className="mx-auto max-w-6xl"><div className="mb-6 flex items-start justify-between gap-4"><div><h1 className="text-2xl font-semibold">{title}</h1><p className="mt-1 text-sm text-slate-500">{subtitle}</p></div>{action}</div>{children}</div></div>;
+  return <div className="min-h-0 flex-1 overflow-y-auto bg-[#06101d] p-4 pb-24 sm:p-6 lg:p-8"><div className="mx-auto max-w-6xl"><div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row"><div className="min-w-0"><h1 className="text-2xl font-semibold">{title}</h1><p className="mt-1 text-sm text-slate-500">{subtitle}</p></div>{action}</div>{children}</div></div>;
 }
 
 function Empty({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
