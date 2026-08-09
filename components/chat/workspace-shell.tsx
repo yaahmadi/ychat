@@ -229,6 +229,7 @@ export function WorkspaceShell() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const contactLookupRef = useRef<HTMLInputElement | null>(null);
   const messagesScrollRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -277,6 +278,7 @@ export function WorkspaceShell() {
       return [];
     }
   });
+  const [callFilter, setCallFilter] = useState<"recent" | "missed">("recent");
 
   async function refreshConversations(preferredId?: string) {
     const { data, error: conversationsError } = await getConversations();
@@ -545,7 +547,12 @@ export function WorkspaceShell() {
     setSending(true);
     setError(null);
     try {
-      const { data, error: sendError } = await sendMessage({ conversationId: activeConversationId, body, messageType });
+      let { data, error: sendError } = await sendMessage({ conversationId: activeConversationId, body, messageType });
+      if (sendError && messageType === "sticker") {
+        const retry = await sendMessage({ conversationId: activeConversationId, body, messageType: "text" });
+        data = retry.data;
+        sendError = retry.error;
+      }
       if (sendError) throw sendError;
       if (data) {
         const sent = data as MessageRow;
@@ -879,8 +886,13 @@ export function WorkspaceShell() {
 
           {view === "calls" && (
             <Page title="Calls" subtitle="Missed and recent Ychat calls." action={callLogs.length > 0 ? <button type="button" onClick={() => setCallLogs([])} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:border-rose-400/40 hover:text-rose-200">Clear all</button> : undefined}>
+              <div className="mb-4 grid grid-cols-2 rounded-2xl border border-white/10 bg-[#0a1b2d] p-1">
+                {(["recent", "missed"] as const).map((filter) => (
+                  <button key={filter} type="button" onClick={() => setCallFilter(filter)} className={`rounded-xl px-4 py-2.5 text-sm font-semibold capitalize ${callFilter === filter ? "bg-cyan-500 text-slate-950" : "text-slate-400 hover:text-white"}`}>{filter}</button>
+                ))}
+              </div>
               <div className="space-y-2">
-                {callLogs.map((item) => (
+                {callLogs.filter((item) => callFilter === "recent" || item.direction === "missed").map((item) => (
                   <div key={item.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0a1b2d] p-4">
                     <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${item.direction === "missed" ? "bg-rose-500/15 text-rose-300" : "bg-cyan-500/15 text-cyan-200"}`}>
                       {item.mode === "video" ? <Video className="h-5 w-5" /> : <Phone className="h-5 w-5" />}
@@ -893,7 +905,7 @@ export function WorkspaceShell() {
                   </div>
                 ))}
               </div>
-              {callLogs.length === 0 && <Empty icon={<Phone className="h-8 w-8" />} title="No calls yet" text="Voice and video calls will appear here as recent and missed calls." />}
+              {callLogs.filter((item) => callFilter === "recent" || item.direction === "missed").length === 0 && <Empty icon={<Phone className="h-8 w-8" />} title={callFilter === "missed" ? "No missed calls" : "No calls yet"} text="Voice and video calls will appear here as recent and missed calls." />}
             </Page>
           )}
 
@@ -977,7 +989,7 @@ export function WorkspaceShell() {
                             <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                               <div className={`relative max-w-[88%] rounded-2xl px-3 py-2 shadow-sm sm:max-w-[72%] ${mine ? "rounded-br-md bg-[#075e72] text-white" : "rounded-bl-md border border-white/[0.055] bg-[#102438] text-slate-100"}`}>
                                 {!mine && activeConversation.type === "group" && <p className="mb-1 text-[11px] font-semibold text-cyan-300">{getSenderName(message.sender_id)}</p>}
-                                {message.message_type === "sticker" ? <div className="px-2 py-1 text-5xl leading-none">{message.body}</div> : message.message_type === "voice" && attachment ? <AttachmentPlayer attachment={attachment} /> : message.message_type === "file" && attachment ? <AttachmentPlayer attachment={attachment} compact /> : <p className="whitespace-pre-wrap break-words text-[14px] leading-5">{message.body}</p>}
+                                {message.message_type === "sticker" || STICKERS.includes(message.body) ? <div className="px-2 py-1 text-5xl leading-none">{message.body}</div> : message.message_type === "voice" && attachment ? <AttachmentPlayer attachment={attachment} /> : message.message_type === "file" && attachment ? <AttachmentPlayer attachment={attachment} compact /> : <p className="whitespace-pre-wrap break-words text-[14px] leading-5">{message.body}</p>}
                                 <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-white/55"><span>{formatTime(message.created_at)}</span>{mine && <span className="text-cyan-200">✓✓</span>}</div>
                               </div>
                             </div>
@@ -991,6 +1003,7 @@ export function WorkspaceShell() {
                       {plusOpen && (
                         <div className="absolute bottom-[72px] left-3 z-30 w-[280px] max-w-[calc(100vw-24px)] rounded-2xl border border-white/10 bg-[#0b1c2f] p-2 shadow-2xl">
                           <button type="button" onClick={() => { fileInputRef.current?.click(); setPlusOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-200 hover:bg-white/5"><Plus className="h-5 w-5 text-cyan-300" /> Photo, video or file</button>
+                          <button type="button" onClick={() => { setPlusOpen(false); void startVoiceRecording(); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-200 hover:bg-white/5"><Mic className="h-5 w-5 text-cyan-300" /> Voice message</button>
                           <button type="button" onClick={() => { setStickerOpen(true); setEmojiOpen(false); setPlusOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-200 hover:bg-white/5"><Sparkles className="h-5 w-5 text-cyan-300" /> Stickers</button>
                           <button type="button" onClick={() => { setEmojiOpen(true); setStickerOpen(false); setPlusOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-200 hover:bg-white/5"><Smile className="h-5 w-5 text-cyan-300" /> Emoji</button>
                         </div>
@@ -1050,12 +1063,12 @@ export function WorkspaceShell() {
           )}
 
           {view === "people" && (
-            <Page title="Contacts" subtitle={`${otherProfiles.length} Ychat contacts`}>
+            <Page title="Contacts" subtitle={`${otherProfiles.length} Ychat contacts`} action={<button type="button" onClick={() => contactLookupRef.current?.focus()} className="flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950"><Plus className="h-4 w-4" /> Add contact</button>}>
               <div className="mb-5 rounded-2xl border border-white/10 bg-[#0a1b2d] p-4">
                 <p className="text-sm font-semibold">Add a contact</p>
                 <p className="mt-1 text-xs text-slate-500">Search by email, username, Ychat ID, or pick from your phonebook. Only people using Ychat are shown.</p>
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                  <input value={contactLookup} onChange={(event) => setContactLookup(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void handleAddContact(); }} placeholder="Email, username or Ychat ID" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-500/30" />
+                  <input ref={contactLookupRef} value={contactLookup} onChange={(event) => setContactLookup(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void handleAddContact(); }} placeholder="Email, username or Ychat ID" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-500/30" />
                   <button type="button" onClick={() => void handlePickPhoneContact()} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:border-cyan-400/30 hover:text-cyan-200">Phonebook</button>
                   <button type="button" onClick={() => void handleAddContact()} disabled={!contactLookup.trim() || addingContact} className="rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950 disabled:opacity-40">{addingContact ? "Adding..." : "Add contact"}</button>
                 </div>
@@ -1093,7 +1106,10 @@ export function WorkspaceShell() {
                       <label className="text-xs text-slate-400"><span className="mb-1.5 block">Display name</span><input value={profileName} onChange={(event) => setProfileName(event.target.value)} className="w-full rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-cyan-500/40" /></label>
                       <label className="text-xs text-slate-400"><span className="mb-1.5 block">Username</span><input value={profileUsername} onChange={(event) => setProfileUsername(event.target.value)} className="w-full rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-cyan-500/40" placeholder="username" /></label>
                     </div>
-                    <button type="button" onClick={() => void saveProfile()} disabled={profileSaving || !profileName.trim()} className="rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950 disabled:opacity-40">{profileSaving ? "Saving…" : "Save profile"}</button>
+                    <div className="flex flex-col gap-2 sm:w-auto">
+                      <button type="button" onClick={() => avatarInputRef.current?.click()} disabled={profileSaving} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-200 disabled:opacity-40">Change photo</button>
+                      <button type="button" onClick={() => void saveProfile()} disabled={profileSaving || !profileName.trim()} className="rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950 disabled:opacity-40">{profileSaving ? "Saving…" : "Save profile"}</button>
+                    </div>
                   </div>
                   <p className="mt-3 text-xs text-slate-500">Tap your avatar to change your profile picture. Your name and photo update across chats and groups.</p>
                 </div>
