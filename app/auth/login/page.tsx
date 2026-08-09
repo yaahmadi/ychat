@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, Phone, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -81,6 +81,17 @@ export default function LoginPage() {
     () => `${getRedirectBase()}/auth/callback`,
     [],
   );
+
+  useEffect(() => {
+    const supabase = createClient();
+    let mounted = true;
+    void supabase.auth.getSession().then(({ data }) => {
+      if (mounted && data.session) router.replace("/chat");
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [router]);
 
   function normalizePhone(value: string) {
     return value.replace(/[\s()-]/g, "");
