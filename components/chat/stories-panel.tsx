@@ -167,7 +167,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto bg-[#06101d] p-4 pb-24 sm:p-6 lg:p-8">
+    <div className="min-h-0 flex-1 overflow-y-auto bg-[#06101d] p-4 pb-24 pt-[max(1rem,env(safe-area-inset-top))] sm:p-6 lg:p-8">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
