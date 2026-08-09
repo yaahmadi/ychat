@@ -1,5 +1,13 @@
 import { createClient } from "@/lib/supabase/client";
-import type { AttachmentRow, MessageRow, ProfileRow, StoryCommentRow, StoryRow } from "@/lib/supabase/types";
+import type {
+  AttachmentRow,
+  CallLogRow,
+  ConversationUserStateRow,
+  MessageRow,
+  ProfileRow,
+  StoryCommentRow,
+  StoryRow,
+} from "@/lib/supabase/types";
 
 function isJwtFutureError(error: unknown) {
   if (!error || typeof error !== "object") return false;
@@ -121,6 +129,101 @@ export async function getConversations() {
     },
     (result) => (result as { error?: unknown }).error,
   );
+}
+
+export async function getConversationUserStates() {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("conversation_user_settings")
+    .select("*");
+  if (isMissingSchemaObject(error)) return { data: [] as ConversationUserStateRow[], error: null };
+  return { data: (data ?? []) as ConversationUserStateRow[], error };
+}
+
+export async function archiveConversations(conversationIds: string[], archived: boolean) {
+  if (conversationIds.length === 0) return;
+  const supabase = createClient();
+  const userId = await currentUserId();
+  const rows = conversationIds.map((conversationId) => ({
+    user_id: userId,
+    conversation_id: conversationId,
+    archived_at: archived ? new Date().toISOString() : null,
+    deleted_at: null,
+    updated_at: new Date().toISOString(),
+  }));
+  const { error } = await supabase
+    .from("conversation_user_settings")
+    .upsert(rows, { onConflict: "user_id,conversation_id" });
+  if (isMissingSchemaObject(error)) return;
+  if (error) throw error;
+}
+
+export async function hideConversations(conversationIds: string[]) {
+  if (conversationIds.length === 0) return;
+  const supabase = createClient();
+  const userId = await currentUserId();
+  const rows = conversationIds.map((conversationId) => ({
+    user_id: userId,
+    conversation_id: conversationId,
+    archived_at: null,
+    deleted_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }));
+  const { error } = await supabase
+    .from("conversation_user_settings")
+    .upsert(rows, { onConflict: "user_id,conversation_id" });
+  if (isMissingSchemaObject(error)) return;
+  if (error) throw error;
+}
+
+export async function getCallLogs() {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("call_logs")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(80);
+  if (isMissingSchemaObject(error)) return { data: [] as CallLogRow[], error: null };
+  return { data: (data ?? []) as CallLogRow[], error };
+}
+
+export async function createCallLog(input: {
+  conversationId?: string | null;
+  title: string;
+  mode: "audio" | "video";
+  direction: "incoming" | "outgoing" | "missed";
+}) {
+  const supabase = createClient();
+  const userId = await currentUserId();
+  const { data, error } = await supabase
+    .from("call_logs")
+    .insert({
+      user_id: userId,
+      conversation_id: input.conversationId ?? null,
+      title: input.title,
+      mode: input.mode,
+      direction: input.direction,
+    })
+    .select("*")
+    .single();
+  if (isMissingSchemaObject(error)) return null;
+  if (error) throw error;
+  return data as CallLogRow;
+}
+
+export async function deleteCallLog(callLogId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("call_logs").delete().eq("id", callLogId);
+  if (isMissingSchemaObject(error)) return;
+  if (error) throw error;
+}
+
+export async function clearCallLogs() {
+  const supabase = createClient();
+  const userId = await currentUserId();
+  const { error } = await supabase.from("call_logs").delete().eq("user_id", userId);
+  if (isMissingSchemaObject(error)) return;
+  if (error) throw error;
 }
 
 export async function getMessages(conversationId: string) {
