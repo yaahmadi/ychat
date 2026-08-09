@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { Mic, MicOff, Phone, PhoneOff, Video, VideoOff } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Bluetooth, Keyboard, Mic, MicOff, Phone, PhoneOff, Volume2, Video, VideoOff } from "lucide-react";
 import type { ActiveCall, CallInvite } from "@/hooks/use-web-rtc-call";
 import type { ProfileRow } from "@/lib/supabase/types";
 
@@ -9,7 +9,15 @@ function initials(name?: string | null) {
   return (name?.trim()?.slice(0, 1) || "U").toUpperCase();
 }
 
-function StreamVideo({ stream, muted = false, className = "" }: { stream: MediaStream; muted?: boolean; className?: string }) {
+type MediaElementWithSink = HTMLMediaElement & {
+  setSinkId?: (sinkId: string) => Promise<void>;
+};
+
+function canSelectAudioOutput() {
+  return typeof HTMLMediaElement !== "undefined" && "setSinkId" in HTMLMediaElement.prototype;
+}
+
+function StreamVideo({ stream, muted = false, sinkId, className = "" }: { stream: MediaStream; muted?: boolean; sinkId?: string; className?: string }) {
   const ref = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
@@ -18,10 +26,16 @@ function StreamVideo({ stream, muted = false, className = "" }: { stream: MediaS
     }
   }, [stream]);
 
+  useEffect(() => {
+    if (!sinkId || !ref.current) return;
+    const element = ref.current as MediaElementWithSink;
+    void element.setSinkId?.(sinkId).catch(() => undefined);
+  }, [sinkId]);
+
   return <video ref={ref} autoPlay playsInline muted={muted} className={className} />;
 }
 
-function StreamAudio({ stream }: { stream: MediaStream }) {
+function StreamAudio({ stream, sinkId }: { stream: MediaStream; sinkId?: string }) {
   const ref = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -30,6 +44,12 @@ function StreamAudio({ stream }: { stream: MediaStream }) {
       void ref.current.play().catch(() => undefined);
     }
   }, [stream]);
+
+  useEffect(() => {
+    if (!sinkId || !ref.current) return;
+    const element = ref.current as MediaElementWithSink;
+    void element.setSinkId?.(sinkId).catch(() => undefined);
+  }, [sinkId]);
 
   return <audio ref={ref} autoPlay playsInline />;
 }
@@ -90,6 +110,32 @@ export function ActiveCallOverlay({
 }) {
   const remotes = Object.entries(remoteStreams);
   const profileName = (id: string) => profiles.find((profile) => profile.id === id)?.display_name || "Participant";
+  const [audioMenuOpen, setAudioMenuOpen] = useState(false);
+  const [keypadOpen, setKeypadOpen] = useState(false);
+  const [dialed, setDialed] = useState("");
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [audioOutputId, setAudioOutputId] = useState("");
+  const outputSupported = canSelectAudioOutput();
+
+  useEffect(() => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    let cancelled = false;
+    void navigator.mediaDevices.enumerateDevices()
+      .then((devices) => {
+        if (cancelled) return;
+        setAudioDevices(devices.filter((device) => device.kind === "audiooutput"));
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const audioOutputLabel = useMemo(() => {
+    if (!outputSupported) return "Phone audio";
+    if (!audioOutputId) return "Default";
+    return audioDevices.find((device) => device.deviceId === audioOutputId)?.label || "Selected audio";
+  }, [audioDevices, audioOutputId, outputSupported]);
 
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-[#020812]/98 text-white backdrop-blur-xl">
@@ -117,7 +163,7 @@ export function ActiveCallOverlay({
             )}
             {remotes.map(([id, stream]) => (
               <div key={id} className="relative min-h-[260px] overflow-hidden rounded-3xl border border-white/10 bg-black">
-                <StreamVideo stream={stream} className="h-full w-full object-cover" />
+                <StreamVideo stream={stream} sinkId={audioOutputId} className="h-full w-full object-cover" />
                 <div className="absolute bottom-3 left-3 rounded-full bg-black/60 px-3 py-1 text-xs backdrop-blur">{profileName(id)}</div>
               </div>
             ))}
@@ -139,7 +185,7 @@ export function ActiveCallOverlay({
                 <p className="text-xs text-slate-500">{remoteStreams[id] ? "Connected" : "Ringing…"}</p>
               </div>
             ))}
-            {remotes.map(([id, stream]) => <StreamAudio key={`audio-${id}`} stream={stream} />)}
+            {remotes.map(([id, stream]) => <StreamAudio key={`audio-${id}`} stream={stream} sinkId={audioOutputId} />)}
           </div>
         )}
 
@@ -155,9 +201,43 @@ export function ActiveCallOverlay({
         )}
       </div>
 
-      <footer className="flex items-center justify-center gap-4 border-t border-white/10 bg-[#06101d]/95 px-4 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+      {audioMenuOpen && (
+        <div className="mx-auto mb-3 w-[min(92vw,420px)] rounded-2xl border border-white/10 bg-[#071827] p-3 text-sm shadow-2xl">
+          <div className="mb-2 flex items-center gap-2 text-cyan-200"><Bluetooth className="h-4 w-4" /> Audio output</div>
+          {outputSupported ? (
+            <div className="space-y-1">
+              <button type="button" onClick={() => { setAudioOutputId(""); setAudioMenuOpen(false); }} className={`w-full rounded-xl px-3 py-2 text-left ${audioOutputId === "" ? "bg-cyan-500 text-slate-950" : "hover:bg-white/5"}`}>Default / speaker</button>
+              {audioDevices.map((device) => (
+                <button key={device.deviceId} type="button" onClick={() => { setAudioOutputId(device.deviceId); setAudioMenuOpen(false); }} className={`w-full rounded-xl px-3 py-2 text-left ${audioOutputId === device.deviceId ? "bg-cyan-500 text-slate-950" : "hover:bg-white/5"}`}>{device.label || "Audio device"}</button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-slate-400">This browser controls speaker, AirPods and Bluetooth from the phone system audio menu.</p>
+          )}
+        </div>
+      )}
+
+      {keypadOpen && (
+        <div className="mx-auto mb-3 w-[min(92vw,360px)] rounded-2xl border border-white/10 bg-[#071827] p-4 shadow-2xl">
+          <div className="mb-3 rounded-xl bg-white/5 px-3 py-2 text-center font-mono text-lg tracking-widest text-cyan-100">{dialed || "Dial pad"}</div>
+          <div className="grid grid-cols-3 gap-2">
+            {"123456789*0#".split("").map((key) => (
+              <button key={key} type="button" onClick={() => setDialed((current) => `${current}${key}`)} className="rounded-2xl bg-white/10 py-3 text-xl font-semibold hover:bg-white/15">{key}</button>
+            ))}
+          </div>
+          <button type="button" onClick={() => setDialed("")} className="mt-3 w-full rounded-xl border border-white/10 py-2 text-sm text-slate-300">Clear</button>
+        </div>
+      )}
+
+      <footer className="flex items-center justify-center gap-3 border-t border-white/10 bg-[#06101d]/95 px-3 py-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:gap-4 sm:px-4 sm:py-5">
         <button type="button" onClick={onToggleMute} className={`flex h-12 w-12 items-center justify-center rounded-full border ${muted ? "border-rose-400/40 bg-rose-500/20 text-rose-300" : "border-white/10 bg-white/10 text-white"}`} aria-label="Toggle microphone">
           {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+        </button>
+        <button type="button" onClick={() => setAudioMenuOpen((current) => !current)} className="flex h-12 min-w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 px-3 text-white" aria-label="Audio output" title={audioOutputLabel}>
+          <Volume2 className="h-5 w-5" />
+        </button>
+        <button type="button" onClick={() => setKeypadOpen((current) => !current)} className={`flex h-12 w-12 items-center justify-center rounded-full border ${keypadOpen ? "border-cyan-400/40 bg-cyan-500/20 text-cyan-200" : "border-white/10 bg-white/10 text-white"}`} aria-label="Dial pad">
+          <Keyboard className="h-5 w-5" />
         </button>
         {call.mode === "video" && (
           <button type="button" onClick={onToggleCamera} className={`flex h-12 w-12 items-center justify-center rounded-full border ${cameraOff ? "border-amber-400/40 bg-amber-500/20 text-amber-300" : "border-white/10 bg-white/10 text-white"}`} aria-label="Toggle camera">
