@@ -25,6 +25,12 @@ function isMissingSchemaObject(error: unknown) {
     || message.includes("not found");
 }
 
+function isMessageTypeConstraintError(error: unknown) {
+  const message = errorMessage(error).toLowerCase();
+  return message.includes("messages_message_type_check")
+    || (message.includes("message_type") && message.includes("check constraint"));
+}
+
 async function pause(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -217,7 +223,7 @@ async function createAttachmentMessage(input: {
   const supabase = createClient();
   const userId = await currentUserId();
 
-  const { data: message, error: messageError } = await supabase
+  let { data: message, error: messageError } = await supabase
     .from("messages")
     .insert({
       conversation_id: input.conversationId,
@@ -227,6 +233,22 @@ async function createAttachmentMessage(input: {
     })
     .select("*")
     .single();
+
+  if (input.messageType === "voice" && isMessageTypeConstraintError(messageError)) {
+    const retry = await supabase
+      .from("messages")
+      .insert({
+        conversation_id: input.conversationId,
+        sender_id: userId,
+        body: input.body,
+        message_type: "file",
+      })
+      .select("*")
+      .single();
+    message = retry.data;
+    messageError = retry.error;
+  }
+
   if (messageError) throw messageError;
 
   const { data: attachment, error: attachmentError } = await supabase
