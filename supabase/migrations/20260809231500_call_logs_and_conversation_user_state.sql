@@ -28,6 +28,14 @@ on public.conversation_user_settings(user_id, updated_at desc);
 create index if not exists call_logs_user_created_idx
 on public.call_logs(user_id, created_at desc);
 
+revoke all on public.story_comments from public, anon, authenticated;
+revoke all on public.conversation_user_settings from public, anon, authenticated;
+revoke all on public.call_logs from public, anon, authenticated;
+
+grant select, insert on public.story_comments to authenticated;
+grant select, insert, update, delete on public.conversation_user_settings to authenticated;
+grant select, insert, delete on public.call_logs to authenticated;
+
 alter table public.conversation_user_settings enable row level security;
 alter table public.call_logs enable row level security;
 
