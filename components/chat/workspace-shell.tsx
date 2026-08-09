@@ -78,6 +78,8 @@ const navItems: Array<{ id: ViewName; label: string; icon: typeof MessageSquare 
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
+const mobileNavItems = navItems.filter(({ id }) => ["chats", "stories", "people", "groups", "settings"].includes(id));
+
 const EMOJIS = [
   "😀", "😂", "😊", "😍", "🥰", "😎", "🤔", "😅", "😭", "😡", "👍", "👎",
   "👏", "🙏", "🤝", "💪", "✅", "❌", "❤️", "💙", "🔥", "🎉", "🚀", "💯",
@@ -799,8 +801,8 @@ export function WorkspaceShell() {
 
         <main className="relative flex min-w-0 flex-1 flex-col bg-[#06101d]">
           {error && (
-            <div className="absolute inset-x-0 top-0 z-50 flex items-center justify-between border-b border-rose-500/20 bg-rose-950/95 px-4 py-3 text-sm text-rose-200 shadow-lg">
-              <span>{error}</span><button type="button" onClick={() => setError(null)}><X className="h-4 w-4" /></button>
+            <div className="absolute inset-x-3 top-[calc(.75rem+env(safe-area-inset-top))] z-50 flex items-start justify-between gap-3 rounded-2xl border border-rose-500/20 bg-rose-950/95 px-3 py-2 text-xs leading-5 text-rose-100 shadow-lg backdrop-blur">
+              <span className="line-clamp-2">{error}</span><button type="button" onClick={() => setError(null)} className="shrink-0 pt-0.5"><X className="h-4 w-4" /></button>
             </div>
           )}
 
@@ -1020,7 +1022,7 @@ export function WorkspaceShell() {
           )}
 
           <nav className="flex h-[calc(64px+env(safe-area-inset-bottom))] shrink-0 overflow-x-auto border-t border-white/10 bg-[#07111f] pb-[env(safe-area-inset-bottom)] lg:hidden ychat-scrollbar">
-            {navItems.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => navigateView(id)} className={`flex min-w-[68px] flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[9px] ${view === id ? "text-cyan-300" : "text-slate-500"}`}><Icon className="h-4.5 w-4.5" />{label}</button>)}
+            {mobileNavItems.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => navigateView(id)} className={`flex min-w-[64px] flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[10px] ${view === id ? "text-cyan-300" : "text-slate-500"}`}><Icon className="h-5 w-5" />{label}</button>)}
           </nav>
         </main>
       </div>

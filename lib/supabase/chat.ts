@@ -7,6 +7,16 @@ function isJwtFutureError(error: unknown) {
   return message.toLowerCase().includes("jwt issued at future");
 }
 
+function errorMessage(error: unknown) {
+  if (!error || typeof error !== "object") return "";
+  return "message" in error ? String((error as { message?: unknown }).message ?? "") : "";
+}
+
+function isMissingSchemaFunction(error: unknown) {
+  const message = errorMessage(error).toLowerCase();
+  return message.includes("schema cache") || message.includes("could not find the function");
+}
+
 async function pause(ms: number) {
   await new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -36,7 +46,7 @@ export async function getProfiles() {
 }
 
 export async function getContactProfiles() {
-  return retryAfterJwtClockSkew(
+  const result = await retryAfterJwtClockSkew(
     async () => {
       const supabase = createClient();
       const { data, error } = await supabase.rpc("get_contact_profiles");
@@ -44,6 +54,14 @@ export async function getContactProfiles() {
     },
     (result) => (result as { error?: unknown }).error,
   );
+
+  if (!isMissingSchemaFunction(result.error)) return result;
+
+  const fallback = await getProfiles();
+  return {
+    data: (fallback.data ?? []) as ProfileRow[],
+    error: fallback.error,
+  };
 }
 
 export async function addContactByLookup(lookup: string) {
@@ -51,6 +69,17 @@ export async function addContactByLookup(lookup: string) {
   if (!clean) throw new Error("Enter an email, username, or Ychat ID.");
   const supabase = createClient();
   const { data, error } = await supabase.rpc("add_contact_by_lookup", { lookup: clean });
+  if (isMissingSchemaFunction(error)) {
+    const { data: matches, error: searchError } = await supabase
+      .from("profiles")
+      .select("id, username, display_name")
+      .ilike("username", clean)
+      .limit(1);
+    if (searchError) throw searchError;
+    const match = matches?.[0] as { id?: string } | undefined;
+    if (!match?.id) throw new Error("No Ychat user found for this ID or email. Ask them to share their Ychat ID from Settings.");
+    return match.id;
+  }
   if (error) throw error;
   return data as string;
 }

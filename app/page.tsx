@@ -28,35 +28,35 @@ const features = [
 export default function HomePage() {
   return (
     <main className="min-h-dvh bg-[#030712] text-slate-100">
-      <header className="border-b border-white/10 bg-[#050b14]/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+      <header className="sticky top-0 z-30 border-b border-white/10 bg-[#050b14]/95 pt-[env(safe-area-inset-top)] backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Link href="/" className="flex items-center gap-3" aria-label="Ychat home">
             <Image
               src="/icon-192.png"
               alt="Ychat logo"
-              width={46}
-              height={46}
-              className="rounded-xl"
+              width={42}
+              height={42}
+              className="h-10 w-10 rounded-xl"
               priority
             />
-            <div>
-              <div className="text-xl font-semibold tracking-tight">Ychat</div>
-              <div className="text-xs text-cyan-300">Secure messaging workspace</div>
+            <div className="min-w-0">
+              <div className="text-lg font-semibold leading-tight tracking-tight">Ychat</div>
+              <div className="truncate text-xs text-cyan-300">Secure messaging</div>
             </div>
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <Link
               href="/auth/login"
-              className="rounded-xl border border-white/10 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-cyan-400/50 hover:text-white"
+              className="rounded-xl border border-white/10 px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-cyan-400/50 hover:text-white sm:px-4"
             >
               Sign in
             </Link>
             <Link
               href="/auth/login"
-              className="rounded-xl bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
+              className="rounded-xl bg-cyan-400 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 sm:px-4"
             >
-              Open Ychat
+              Open
             </Link>
           </div>
         </div>
@@ -64,24 +64,24 @@ export default function HomePage() {
 
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.16),_transparent_34%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.12),_transparent_30%)]" />
-        <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1.15fr_.85fr] lg:items-center lg:py-24">
+        <div className="relative mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:px-6 sm:py-16 lg:grid-cols-[1.15fr_.85fr] lg:items-center lg:py-20">
           <div>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/5 px-3 py-1 text-xs font-medium text-cyan-200">
               <LockKeyhole className="h-3.5 w-3.5" />
               Ychat by Yama Ahmadi Services Informatiques
             </div>
-            <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
-              Messaging, calls and collaboration in one Ychat workspace.
+            <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
+              Ychat
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
-              Ychat is a web and PWA messaging application designed for authenticated users to communicate through direct messages, group conversations, shared media, stories and supported voice/video calling features.
+            <p className="mt-3 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">
+              Private chats, groups, stories, voice messages, and voice/video calls in a clean mobile-first workspace.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap gap-3">
               <Link
                 href="/auth/login"
                 className="rounded-xl bg-cyan-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300"
               >
-                Sign in or create an account
+                Start chatting
               </Link>
               <Link
                 href="/privacy"
