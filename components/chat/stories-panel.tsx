@@ -206,19 +206,19 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
         </div>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {stories.map((story) => {
-            const profile = profiles.find((item) => item.id === story.user_id);
+          {grouped.map(({ profileId, profile, items }) => {
+            const latest = items[0];
             return (
-              <button key={story.id} type="button" onClick={() => setViewerStory(story)} className="overflow-hidden rounded-3xl border border-white/10 bg-[#0a1b2d] text-left transition hover:border-cyan-400/25">
+              <button key={profileId} type="button" onClick={() => setViewerStory(latest)} className="overflow-hidden rounded-3xl border border-white/10 bg-[#0a1b2d] text-left transition hover:border-cyan-400/25">
                 <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-[#0c2840] via-[#0b3650] to-[#075e72]">
-                  {story.story_type === "text" ? (
-                    <div className="flex h-full items-center justify-center p-8 text-center text-2xl font-semibold leading-9 text-white">{story.body}</div>
+                  {latest.story_type === "text" ? (
+                    <div className="flex h-full items-center justify-center p-8 text-center text-2xl font-semibold leading-9 text-white">{latest.body}</div>
                   ) : (
-                    <StoryMedia story={story} className="h-full w-full object-cover" />
+                    <StoryMedia story={latest} className="h-full w-full object-cover" />
                   )}
                   <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-3 bg-gradient-to-b from-black/65 to-transparent p-4">
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-500/20 text-xs font-semibold text-cyan-100">{initials(profile?.display_name)}</div>
-                    <div><p className="text-sm font-medium text-white">{profile?.display_name || "User"}</p><p className="text-[11px] text-white/60">expires in {timeLeft(story.expires_at)}</p></div>
+                    <div><p className="text-sm font-medium text-white">{profileId === userId ? "Your story" : profile?.display_name || "User"}</p><p className="text-[11px] text-white/60">{items.length} {items.length === 1 ? "story" : "stories"} · expires in {timeLeft(latest.expires_at)}</p></div>
                   </div>
                 </div>
               </button>
