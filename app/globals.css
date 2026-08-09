@@ -31,6 +31,16 @@ button, input, textarea { font: inherit; }
 button { -webkit-tap-highlight-color: transparent; }
 ::selection { background: rgba(34, 211, 238, 0.35); color: #f8fafc; }
 
+.ychat-app-shell {
+  position: fixed;
+  inset: 0;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
 .ychat-chat-wallpaper {
   background-color: #06101d;
   background-image:
@@ -56,8 +66,4 @@ button { -webkit-tap-highlight-color: transparent; }
   border: 2px solid rgba(34,211,238,.35);
   border-radius: 999px;
   animation: yama-pulse-ring 1.8s infinite;
-}
-
-@media (display-mode: standalone) {
-  body { padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
 }

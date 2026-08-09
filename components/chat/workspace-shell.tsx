@@ -216,10 +216,12 @@ export function WorkspaceShell() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+  const messagesScrollRef = useRef<HTMLDivElement | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const voiceChunksRef = useRef<Blob[]>([]);
   const voiceStreamRef = useRef<MediaStream | null>(null);
+  const recordingConversationIdRef = useRef<string | null>(null);
   const recordingStartedRef = useRef<number>(0);
   const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -398,7 +400,9 @@ export function WorkspaceShell() {
   }, [activeConversationId, profiles, userId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const scroller = messagesScrollRef.current;
+    if (!scroller) return;
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" });
   }, [messages.length, activeConversationId]);
 
   useEffect(() => {
@@ -567,7 +571,15 @@ export function WorkspaceShell() {
       }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
       voiceStreamRef.current = stream;
-      const preferred = MediaRecorder.isTypeSupported("audio/webm;codecs=opus") ? "audio/webm;codecs=opus" : "";
+      recordingConversationIdRef.current = activeConversationId;
+      const supportedMimeTypes = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/mp4;codecs=mp4a.40.2",
+        "audio/mp4",
+        "audio/ogg;codecs=opus",
+      ];
+      const preferred = supportedMimeTypes.find((mimeType) => MediaRecorder.isTypeSupported(mimeType));
       const recorder = new MediaRecorder(stream, preferred ? { mimeType: preferred } : undefined);
       voiceChunksRef.current = [];
       recordingStartedRef.current = Date.now();
@@ -577,10 +589,11 @@ export function WorkspaceShell() {
         if (event.data.size > 0) voiceChunksRef.current.push(event.data);
       };
       recorder.onstop = () => {
-        const conversationId = activeConversationId;
+        const conversationId = recordingConversationIdRef.current;
         const duration = Date.now() - recordingStartedRef.current;
         const blob = new Blob(voiceChunksRef.current, { type: recorder.mimeType || "audio/webm" });
         voiceChunksRef.current = [];
+        recordingConversationIdRef.current = null;
         voiceStreamRef.current?.getTracks().forEach((track) => track.stop());
         voiceStreamRef.current = null;
         setRecording(false);
@@ -609,7 +622,11 @@ export function WorkspaceShell() {
   }
 
   function stopVoiceRecording() {
-    if (mediaRecorderRef.current?.state === "recording") mediaRecorderRef.current.stop();
+    const recorder = mediaRecorderRef.current;
+    if (recorder?.state === "recording") {
+      recorder.requestData();
+      recorder.stop();
+    }
   }
 
   async function installPwa() {
@@ -686,7 +703,7 @@ export function WorkspaceShell() {
   const attachmentByMessage = new Map(attachments.map((attachment) => [attachment.message_id, attachment]));
 
   return (
-    <div className="min-h-screen min-h-dvh overflow-hidden bg-[#030712] text-slate-100">
+    <div className="ychat-app-shell bg-[#030712] text-slate-100">
       {call.incomingCall && !call.activeCall && (
         <IncomingCallCard
           invite={call.incomingCall}
@@ -739,7 +756,7 @@ export function WorkspaceShell() {
         </Modal>
       )}
 
-      <div className="mx-auto flex h-screen h-dvh max-w-[1800px]">
+      <div className="mx-auto flex h-full max-w-[1800px]">
         <aside className="hidden w-[88px] shrink-0 flex-col justify-between border-r border-white/10 bg-[#07111f] p-3 lg:flex">
           <div>
             <button type="button" onClick={() => navigateView("chats")} className="mb-4 flex w-full items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-2.5">
@@ -816,7 +833,7 @@ export function WorkspaceShell() {
               <section className={`${activeConversationId ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col bg-[#06101d]`}>
                 {activeConversation ? (
                   <>
-                    <header className="flex h-[68px] shrink-0 items-center gap-3 border-b border-white/10 bg-[#091a2b] px-3 sm:px-4">
+                    <header className="flex h-[68px] shrink-0 items-center gap-3 border-b border-white/10 bg-[#091a2b] px-3 pt-[env(safe-area-inset-top)] sm:px-4">
                       <button type="button" onClick={() => setActiveConversationId(null)} className="rounded-full p-2 text-slate-400 md:hidden"><ChevronLeft className="h-5 w-5" /></button>
                       {activeConversation.type === "group" ? <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-500/15 text-cyan-200"><Users className="h-5 w-5" /></div> : <Avatar profile={getConversationProfile(activeConversation)} size="sm" />}
                       <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-semibold">{getConversationName(activeConversation)}</p><p className="truncate text-xs text-slate-500">{activeConversation.type === "group" ? activeMembers.map((member) => member.display_name).join(", ") : isProfileOnline(getConversationProfile(activeConversation)) ? "online" : "secure conversation"}</p></div>
@@ -827,7 +844,7 @@ export function WorkspaceShell() {
                       </div>
                     </header>
 
-                    <div className="ychat-chat-wallpaper ychat-scrollbar flex-1 overflow-y-auto px-3 py-5 sm:px-6">
+                    <div ref={messagesScrollRef} className="ychat-chat-wallpaper ychat-scrollbar min-h-0 flex-1 overscroll-contain overflow-y-auto px-3 py-5 sm:px-6">
                       <div className="mx-auto max-w-4xl space-y-2">
                         <div className="mx-auto mb-5 w-fit rounded-lg bg-[#102438]/90 px-3 py-1.5 text-center text-[11px] text-slate-400 shadow">Messages are stored securely in your Ychat workspace.</div>
                         {messages.length === 0 && <div className="py-16 text-center text-sm text-slate-500">No messages yet. Send the first one.</div>}
@@ -848,7 +865,7 @@ export function WorkspaceShell() {
                       </div>
                     </div>
 
-                    <div className="relative shrink-0 border-t border-white/10 bg-[#091a2b] px-2 py-2 pb-[max(.5rem,env(safe-area-inset-bottom))] sm:px-3">
+                    <div className="relative shrink-0 border-t border-white/10 bg-[#091a2b] px-2 py-2 sm:px-3">
                       {emojiOpen && (
                         <div className="absolute bottom-[72px] left-3 z-30 w-[310px] max-w-[calc(100vw-24px)] rounded-2xl border border-white/10 bg-[#0b1c2f] p-3 shadow-2xl">
                           <div className="mb-2 flex items-center justify-between"><span className="text-xs font-semibold text-slate-400">Emoji</span><button type="button" onClick={() => setEmojiOpen(false)}><X className="h-4 w-4 text-slate-500" /></button></div>
@@ -864,7 +881,7 @@ export function WorkspaceShell() {
 
                       <div className="mx-auto flex max-w-5xl items-end gap-1.5">
                         <button type="button" onClick={() => { setEmojiOpen((current) => !current); setStickerOpen(false); }} className="mb-1 rounded-full p-2.5 text-slate-400 hover:bg-white/5 hover:text-cyan-200" title="Emoji"><Smile className="h-5 w-5" /></button>
-                        <button type="button" onClick={() => { setStickerOpen((current) => !current); setEmojiOpen(false); }} className="mb-1 hidden rounded-full p-2.5 text-slate-400 hover:bg-white/5 hover:text-cyan-200 sm:block" title="Stickers"><Sparkles className="h-5 w-5" /></button>
+                        <button type="button" onClick={() => { setStickerOpen((current) => !current); setEmojiOpen(false); }} className="mb-1 rounded-full p-2.5 text-slate-400 hover:bg-white/5 hover:text-cyan-200" title="Stickers"><Sparkles className="h-5 w-5" /></button>
                         <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="mb-1 rounded-full p-2.5 text-slate-400 hover:bg-white/5 hover:text-cyan-200 disabled:opacity-40" title="Attach file"><Paperclip className="h-5 w-5" /></button>
                         <input ref={fileInputRef} type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.zip,.txt" className="hidden" onChange={handleFileChange} />
 
@@ -951,7 +968,7 @@ export function WorkspaceShell() {
             </Page>
           )}
 
-          <nav className="flex h-[64px] shrink-0 overflow-x-auto border-t border-white/10 bg-[#07111f] pb-[env(safe-area-inset-bottom)] lg:hidden ychat-scrollbar">
+          <nav className="flex h-[calc(64px+env(safe-area-inset-bottom))] shrink-0 overflow-x-auto border-t border-white/10 bg-[#07111f] pb-[env(safe-area-inset-bottom)] lg:hidden ychat-scrollbar">
             {navItems.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => navigateView(id)} className={`flex min-w-[68px] flex-1 flex-col items-center justify-center gap-0.5 px-1 text-[9px] ${view === id ? "text-cyan-300" : "text-slate-500"}`}><Icon className="h-4.5 w-4.5" />{label}</button>)}
           </nav>
         </main>
