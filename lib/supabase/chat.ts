@@ -65,7 +65,19 @@ export async function getContactProfiles() {
 
   if (!isMissingSchemaFunction(result.error)) return result;
 
-  const fallback = await getProfiles();
+  const supabase = createClient();
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) return { data: [], error: sessionError };
+  const userId = sessionData.session?.user.id;
+  if (!userId) return { data: [], error: null };
+
+  const fallback = await retryAfterJwtClockSkew(
+    () => {
+      const client = createClient();
+      return client.from("profiles").select("*").eq("id", userId).limit(1);
+    },
+    (value) => (value as { error?: unknown }).error,
+  );
   return {
     data: (fallback.data ?? []) as ProfileRow[],
     error: fallback.error,
