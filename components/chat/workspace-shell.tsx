@@ -100,7 +100,7 @@ const EMOJIS = [
 ];
 
 const STICKERS = ["👍", "❤️", "😂", "🎉", "🔥", "🚀", "💯", "👏", "🤝", "🫡", "✅", "☕"];
-const APP_VERSION = "1.0.5";
+const APP_VERSION = "1.0.6";
 
 type CallLogEntry = {
   id: string;
@@ -161,14 +161,20 @@ function AttachmentPlayer({ attachment, compact = false }: { attachment: Attachm
   const isAudio = attachment.mime_type?.startsWith("audio/") ?? false;
   const isMedia = isImage || isVideo || isAudio;
   const [loading, setLoading] = useState(isMedia);
+  const [failed, setFailed] = useState(false);
 
   async function loadUrl() {
-    if (url || loading) return url;
+    if (url) return url;
+    if (loading) return null;
     setLoading(true);
+    setFailed(false);
     try {
       const next = await getAttachmentDownloadUrl(attachment.file_path);
       setUrl(next);
       return next;
+    } catch {
+      setFailed(true);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -181,7 +187,9 @@ function AttachmentPlayer({ attachment, compact = false }: { attachment: Attachm
       .then((next) => {
         if (!cancelled) setUrl(next);
       })
-      .catch(() => undefined)
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
@@ -193,7 +201,7 @@ function AttachmentPlayer({ attachment, compact = false }: { attachment: Attachm
   if (isAudio) {
     return (
       <div className="min-w-[220px] max-w-[320px]">
-        {url ? <audio controls preload="metadata" src={url} className="h-10 w-full max-w-[310px]" /> : <div className="flex items-center gap-2 text-xs opacity-70"><Mic className="h-4 w-4" /> Loading voice…</div>}
+        {url ? <audio controls preload="metadata" src={url} className="h-10 w-full max-w-[310px]" /> : failed ? <button type="button" onClick={() => void loadUrl()} className="flex items-center gap-2 rounded-xl border border-white/10 px-3 py-2 text-xs text-rose-200"><Mic className="h-4 w-4" /> Voice unavailable. Retry</button> : <div className="flex items-center gap-2 text-xs opacity-70"><Mic className="h-4 w-4" /> Loading voice…</div>}
       </div>
     );
   }
@@ -273,6 +281,11 @@ export function WorkspaceShell() {
   const [addingContact, setAddingContact] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [peopleOpen, setPeopleOpen] = useState(false);
+  const [manualContactOpen, setManualContactOpen] = useState(false);
+  const [manualFirstName, setManualFirstName] = useState("");
+  const [manualLastName, setManualLastName] = useState("");
+  const [manualPhone, setManualPhone] = useState("");
+  const [manualEmail, setManualEmail] = useState("");
   const [groupOpen, setGroupOpen] = useState(false);
   const [groupTitle, setGroupTitle] = useState("");
   const [groupMembers, setGroupMembers] = useState<string[]>([]);
@@ -294,6 +307,8 @@ export function WorkspaceShell() {
     }
   });
   const [callFilter, setCallFilter] = useState<"recent" | "missed">("recent");
+  const [dialPadOpen, setDialPadOpen] = useState(false);
+  const [dialNumber, setDialNumber] = useState("");
   const [chatSelectMode, setChatSelectMode] = useState(false);
   const [selectedConversationIds, setSelectedConversationIds] = useState<string[]>([]);
   const [archivedConversationIds, setArchivedConversationIds] = useState<string[]>(() => {
@@ -595,6 +610,11 @@ export function WorkspaceShell() {
     return otherMember ? profiles.find((profile) => profile.id === otherMember.user_id) ?? null : null;
   }
 
+  function getProfileContactLine(profile?: ProfileRow | null) {
+    if (!profile) return "secure conversation";
+    return profile.email_address || profile.phone_number || (isProfileOnline(profile) ? "online" : "secure conversation");
+  }
+
   function getSenderName(senderId: string) {
     const profile = profiles.find((item) => item.id === senderId);
     return profile?.display_name || profile?.username || "User";
@@ -806,6 +826,64 @@ export function WorkspaceShell() {
       await handleStartChat(contactId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to add contact.");
+    } finally {
+      setAddingContact(false);
+    }
+  }
+
+  async function addManualContact() {
+    const lookup = manualEmail.trim() || manualPhone.trim();
+    if (!lookup) {
+      setError("Enter an email or phone number for this contact.");
+      return;
+    }
+    setContactLookup(lookup);
+    setAddingContact(true);
+    setError(null);
+    try {
+      const contactId = await addContactByLookup(lookup);
+      const profilesResult = await getContactProfiles();
+      if (profilesResult.error) throw profilesResult.error;
+      setProfiles((profilesResult.data ?? []) as ProfileRow[]);
+      setManualFirstName("");
+      setManualLastName("");
+      setManualPhone("");
+      setManualEmail("");
+      setContactLookup("");
+      setManualContactOpen(false);
+      await handleStartChat(contactId);
+    } catch (err) {
+      const name = [manualFirstName, manualLastName].filter(Boolean).join(" ").trim();
+      setError(err instanceof Error ? `${name ? `${name}: ` : ""}${err.message}` : "Unable to add contact.");
+    } finally {
+      setAddingContact(false);
+    }
+  }
+
+  async function callDialNumber() {
+    const lookup = dialNumber.trim();
+    if (!lookup) {
+      setError("Enter a phone number, email, username, or Ychat ID.");
+      return;
+    }
+    setAddingContact(true);
+    setError(null);
+    try {
+      const contactId = await addContactByLookup(lookup);
+      const profilesResult = await getContactProfiles();
+      if (profilesResult.error) throw profilesResult.error;
+      setProfiles((profilesResult.data ?? []) as ProfileRow[]);
+      const conversationId = await startDirectConversation(contactId);
+      await refreshConversations(conversationId);
+      const { data } = await getConversations();
+      const conversation = ((data ?? []) as ConversationRow[]).find((row) => row.id === conversationId);
+      if (!conversation) throw new Error("Conversation was created but could not be loaded.");
+      setDialPadOpen(false);
+      setDialNumber("");
+      setView("chats");
+      await beginCall("audio", conversation);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to call this number. The contact must be a Ychat user.");
     } finally {
       setAddingContact(false);
     }
@@ -1092,9 +1170,43 @@ export function WorkspaceShell() {
               <span className="line-clamp-2">{error}</span><button type="button" onClick={() => setError(null)} className="shrink-0 pt-0.5"><X className="h-4 w-4" /></button>
             </div>
           )}
+          {manualContactOpen && (
+            <Modal onClose={() => setManualContactOpen(false)}>
+              <div className="p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div><h2 className="text-lg font-semibold">Add contact</h2><p className="mt-1 text-xs text-slate-500">Add by email or phone. If they use Ychat, chat opens automatically.</p></div>
+                  <button type="button" onClick={() => setManualContactOpen(false)} className="rounded-full p-2 text-slate-500 hover:bg-white/5"><X className="h-4 w-4" /></button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input value={manualFirstName} onChange={(event) => setManualFirstName(event.target.value)} placeholder="First name" className="rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500" />
+                  <input value={manualLastName} onChange={(event) => setManualLastName(event.target.value)} placeholder="Last name" className="rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500" />
+                  <input value={manualPhone} onChange={(event) => setManualPhone(event.target.value)} placeholder="Phone number" className="rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500" />
+                  <input value={manualEmail} onChange={(event) => setManualEmail(event.target.value)} placeholder="Email address" className="rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500" />
+                </div>
+                <button type="button" onClick={() => void addManualContact()} disabled={addingContact || (!manualEmail.trim() && !manualPhone.trim())} className="mt-4 w-full rounded-xl bg-cyan-500 px-4 py-3 text-sm font-semibold text-slate-950 disabled:opacity-40">{addingContact ? "Adding..." : "Add contact"}</button>
+              </div>
+            </Modal>
+          )}
 
           {view === "calls" && (
-            <Page title="Calls" subtitle="Missed and recent Ychat calls." action={callLogs.length > 0 ? <button type="button" onClick={clearAllCallLogs} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:border-rose-400/40 hover:text-rose-200">Clear all</button> : undefined}>
+            <Page title="Calls" subtitle="Missed and recent Ychat calls." action={<div className="flex gap-2"><button type="button" onClick={() => setDialPadOpen(true)} className="rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950">Keypad</button>{callLogs.length > 0 && <button type="button" onClick={clearAllCallLogs} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:border-rose-400/40 hover:text-rose-200">Clear all</button>}</div>}>
+              {dialPadOpen && (
+                <Modal onClose={() => setDialPadOpen(false)}>
+                  <div className="p-5">
+                    <div className="mb-4 flex items-center justify-between">
+                      <div><h2 className="text-lg font-semibold">Call with Ychat</h2><p className="mt-1 text-xs text-slate-500">Enter phone, email, username, or Ychat ID.</p></div>
+                      <button type="button" onClick={() => setDialPadOpen(false)} className="rounded-full p-2 text-slate-500 hover:bg-white/5"><X className="h-4 w-4" /></button>
+                    </div>
+                    <input value={dialNumber} onChange={(event) => setDialNumber(event.target.value)} placeholder="+336..., email, username or ID" className="mb-4 w-full rounded-2xl border border-white/10 bg-[#102438] px-4 py-3 text-center font-mono text-lg outline-none placeholder:text-sm placeholder:font-sans placeholder:text-slate-500 focus:border-cyan-500/30" />
+                    <div className="grid grid-cols-3 gap-2">
+                      {["1","2","3","4","5","6","7","8","9","+","0","⌫"].map((key) => (
+                        <button key={key} type="button" onClick={() => setDialNumber((current) => key === "⌫" ? current.slice(0, -1) : current + key)} className="rounded-2xl border border-white/10 bg-white/5 py-4 text-xl font-semibold hover:bg-white/10">{key}</button>
+                      ))}
+                    </div>
+                    <button type="button" onClick={() => void callDialNumber()} disabled={!dialNumber.trim() || addingContact} className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-500 px-4 py-3 font-semibold text-slate-950 disabled:opacity-40"><Phone className="h-5 w-5" /> {addingContact ? "Connecting..." : "Call"}</button>
+                  </div>
+                </Modal>
+              )}
               <div className="mb-4 grid grid-cols-2 rounded-2xl border border-white/10 bg-[#0a1b2d] p-1">
                 {(["recent", "missed"] as const).map((filter) => (
                   <button key={filter} type="button" onClick={() => setCallFilter(filter)} className={`rounded-xl px-4 py-2.5 text-sm font-semibold capitalize ${callFilter === filter ? "bg-cyan-500 text-slate-950" : "text-slate-400 hover:text-white"}`}>{filter}</button>
@@ -1127,6 +1239,7 @@ export function WorkspaceShell() {
                     <Image src="/brand/yama-logo.png" alt="Yama Ahmadi Services Informatiques" width={150} height={54} className="h-10 w-auto object-contain object-left" priority />
                     <div className="ml-auto flex gap-1">
                       <button type="button" onClick={() => setGroupOpen(true)} title="New group" className="rounded-full p-2.5 text-slate-400 hover:bg-white/5 hover:text-cyan-200"><Users className="h-5 w-5" /></button>
+                      <button type="button" onClick={() => setManualContactOpen(true)} title="Add contact" className="rounded-full p-2.5 text-slate-400 hover:bg-white/5 hover:text-cyan-200"><Plus className="h-5 w-5" /></button>
                       <button type="button" onClick={() => setPeopleOpen((current) => !current)} title="New chat" className="rounded-full p-2.5 text-slate-400 hover:bg-white/5 hover:text-cyan-200"><MessageCircle className="h-5 w-5" /></button>
                       <button type="button" title="Menu" className="rounded-full p-2.5 text-slate-500 hover:bg-white/5"><MoreVertical className="h-5 w-5" /></button>
                     </div>
@@ -1160,7 +1273,10 @@ export function WorkspaceShell() {
                       <input value={contactLookup} onChange={(event) => setContactLookup(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void handleAddContact(); }} placeholder="Email, username or Ychat ID" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#102438] px-3 py-2 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-500/30" />
                       <button type="button" onClick={() => void handleAddContact()} disabled={!contactLookup.trim() || addingContact} className="rounded-xl bg-cyan-500 px-3 text-sm font-semibold text-slate-950 disabled:opacity-40">Add</button>
                     </div>
-                    <button type="button" onClick={() => void handlePickPhoneContact()} className="mb-3 w-full rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300 hover:border-cyan-400/30 hover:text-cyan-200">Choose from phonebook</button>
+                    <div className="mb-3 grid grid-cols-2 gap-2">
+                      <button type="button" onClick={() => setManualContactOpen(true)} className="rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300 hover:border-cyan-400/30 hover:text-cyan-200">New contact</button>
+                      <button type="button" onClick={() => void handlePickPhoneContact()} className="rounded-xl border border-white/10 px-3 py-2 text-sm text-slate-300 hover:border-cyan-400/30 hover:text-cyan-200">Phonebook</button>
+                    </div>
                     <div className="max-h-56 space-y-1 overflow-y-auto ychat-scrollbar">
                       {otherProfiles.map((profile) => (
                         <button key={profile.id} type="button" disabled={creatingChat === profile.id} onClick={() => void handleStartChat(profile.id)} className="flex w-full items-center gap-3 rounded-xl p-2.5 text-left hover:bg-white/5 disabled:opacity-50">
@@ -1212,7 +1328,7 @@ export function WorkspaceShell() {
                     <header className="flex min-h-[68px] shrink-0 items-center gap-3 border-b border-white/10 bg-[#091a2b] px-3 pb-2 pt-[max(.5rem,env(safe-area-inset-top))] sm:px-4">
                       <button type="button" onClick={() => setActiveConversationId(null)} className="rounded-full p-2 text-slate-400 md:hidden"><ChevronLeft className="h-5 w-5" /></button>
                       {activeConversation.type === "group" ? <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-500/15 text-cyan-200"><Users className="h-5 w-5" /></div> : <Avatar profile={getConversationProfile(activeConversation)} size="sm" />}
-                      <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-semibold">{getConversationName(activeConversation)}</p><p className="truncate text-xs text-slate-500">{activeConversation.type === "group" ? activeMembers.map((member) => member.display_name).join(", ") : isProfileOnline(getConversationProfile(activeConversation)) ? "online" : "secure conversation"}</p></div>
+                      <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-semibold">{getConversationName(activeConversation)}</p><p className="truncate text-xs text-slate-500">{activeConversation.type === "group" ? activeMembers.map((member) => member.display_name).join(", ") : getProfileContactLine(getConversationProfile(activeConversation))}</p></div>
                       <div className="flex items-center gap-1">
                         <button type="button" onClick={() => void beginCall("audio")} title="Voice call" className="rounded-full p-2.5 text-slate-300 hover:bg-white/5 hover:text-cyan-300"><Phone className="h-5 w-5" /></button>
                         <button type="button" onClick={() => void beginCall("video")} title="Video call" className="rounded-full p-2.5 text-slate-300 hover:bg-white/5 hover:text-cyan-300"><Video className="h-5 w-5" /></button>
@@ -1305,7 +1421,7 @@ export function WorkspaceShell() {
           )}
 
           {view === "people" && (
-            <Page title="Contacts" subtitle={`${otherProfiles.length} Ychat contacts`} action={<button type="button" onClick={() => contactLookupRef.current?.focus()} className="flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950"><Plus className="h-4 w-4" /> Add contact</button>}>
+            <Page title="Contacts" subtitle={`${otherProfiles.length} Ychat contacts`} action={<button type="button" onClick={() => setManualContactOpen(true)} className="flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950"><Plus className="h-4 w-4" /> Add contact</button>}>
               <div className="mb-5 rounded-2xl border border-white/10 bg-[#0a1b2d] p-4">
                 <p className="text-sm font-semibold">Add a contact</p>
                 <p className="mt-1 text-xs text-slate-500">Search by email, username, Ychat ID, or pick from your phonebook. Only people using Ychat are shown.</p>
