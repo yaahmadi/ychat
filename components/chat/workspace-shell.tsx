@@ -42,13 +42,20 @@ import {
 
 import {
   addContactByLookup,
+  archiveConversations,
+  clearCallLogs as clearCallLogsFromDb,
   createGroupConversation,
+  createCallLog,
+  deleteCallLog as deleteCallLogFromDb,
   getAttachmentDownloadUrl,
   getAttachments,
+  getCallLogs,
   getContactProfiles,
+  getConversationUserStates,
   getConversations,
   getStories,
   getMessages,
+  hideConversations,
   requestNotificationPermission,
   sendMessage,
   startDirectConversation,
@@ -298,6 +305,15 @@ export function WorkspaceShell() {
       return [];
     }
   });
+  const [deletedConversationIds, setDeletedConversationIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = window.localStorage.getItem("ychat:deleted-conversations");
+      return saved ? (JSON.parse(saved) as string[]) : [];
+    } catch {
+      return [];
+    }
+  });
 
   async function refreshConversations(preferredId?: string) {
     const { data, error: conversationsError } = await getConversations();
@@ -470,6 +486,56 @@ export function WorkspaceShell() {
   }, [archivedConversationIds]);
 
   useEffect(() => {
+    window.localStorage.setItem("ychat:deleted-conversations", JSON.stringify(deletedConversationIds));
+  }, [deletedConversationIds]);
+
+  useEffect(() => {
+    if (!userId) return;
+    let disposed = false;
+
+    async function loadUserState() {
+      const [callsResult, conversationStateResult] = await Promise.all([
+        getCallLogs(),
+        getConversationUserStates(),
+      ]);
+      if (disposed) return;
+      if (callsResult.error) setError(callsResult.error.message);
+      if (conversationStateResult.error) setError(conversationStateResult.error.message);
+
+      const callRows = callsResult.data ?? [];
+      if (callRows.length > 0) {
+        setCallLogs(callRows.map((row) => ({
+          id: row.id,
+          title: row.title,
+          mode: row.mode,
+          direction: row.direction,
+          createdAt: row.created_at,
+          conversationId: row.conversation_id ?? undefined,
+        })));
+      }
+
+      const stateRows = conversationStateResult.data ?? [];
+      setArchivedConversationIds((current) => [
+        ...new Set([
+          ...current,
+          ...stateRows.filter((row) => row.archived_at && !row.deleted_at).map((row) => row.conversation_id),
+        ]),
+      ]);
+      setDeletedConversationIds((current) => [
+        ...new Set([
+          ...current,
+          ...stateRows.filter((row) => row.deleted_at).map((row) => row.conversation_id),
+        ]),
+      ]);
+    }
+
+    void loadUserState();
+    return () => {
+      disposed = true;
+    };
+  }, [userId]);
+
+  useEffect(() => {
     let disposed = false;
     async function loadStories() {
       const { data } = await getStories();
@@ -535,7 +601,7 @@ export function WorkspaceShell() {
   }
 
   const searchQuery = search.trim().toLowerCase();
-  const visibleConversations = conversations.filter((conversation) => !archivedConversationIds.includes(conversation.id));
+  const visibleConversations = conversations.filter((conversation) => !archivedConversationIds.includes(conversation.id) && !deletedConversationIds.includes(conversation.id));
   const filteredConversations = searchQuery
     ? visibleConversations.filter((conversation) => getConversationName(conversation).toLowerCase().includes(searchQuery))
     : visibleConversations;
@@ -548,10 +614,25 @@ export function WorkspaceShell() {
   const call = useWebRtcCall(userId, currentProfile?.display_name || "User");
 
   function logCall(entry: Omit<CallLogEntry, "id" | "createdAt">) {
+    const localId = crypto.randomUUID();
+    const createdAt = new Date().toISOString();
     setCallLogs((current) => [
-      { ...entry, id: crypto.randomUUID(), createdAt: new Date().toISOString() },
+      { ...entry, id: localId, createdAt },
       ...current,
     ].slice(0, 80));
+    void createCallLog({
+      conversationId: entry.conversationId,
+      title: entry.title,
+      mode: entry.mode,
+      direction: entry.direction,
+    }).then((row) => {
+      if (!row) return;
+      setCallLogs((current) => current.map((item) => item.id === localId ? {
+        ...item,
+        id: row.id,
+        createdAt: row.created_at,
+      } : item));
+    }).catch(() => undefined);
   }
 
   async function beginCall(mode: CallMode, conversationOverride?: ConversationRow) {
@@ -600,14 +681,33 @@ export function WorkspaceShell() {
   }
 
   function archiveSelectedChats() {
+    const ids = selectedConversationIds;
     setArchivedConversationIds((current) => [...new Set([...current, ...selectedConversationIds])]);
+    setDeletedConversationIds((current) => current.filter((id) => !ids.includes(id)));
     if (activeConversationId && selectedConversationIds.includes(activeConversationId)) setActiveConversationId(null);
     setSelectedConversationIds([]);
     setChatSelectMode(false);
+    void archiveConversations(ids, true).catch((err) => setError(err instanceof Error ? err.message : "Unable to archive chats."));
   }
 
   function deleteSelectedChats() {
-    archiveSelectedChats();
+    const ids = selectedConversationIds;
+    setDeletedConversationIds((current) => [...new Set([...current, ...ids])]);
+    setArchivedConversationIds((current) => current.filter((id) => !ids.includes(id)));
+    if (activeConversationId && ids.includes(activeConversationId)) setActiveConversationId(null);
+    setSelectedConversationIds([]);
+    setChatSelectMode(false);
+    void hideConversations(ids).catch((err) => setError(err instanceof Error ? err.message : "Unable to delete chats."));
+  }
+
+  function removeCallLog(callLogId: string) {
+    setCallLogs((current) => current.filter((log) => log.id !== callLogId));
+    void deleteCallLogFromDb(callLogId).catch((err) => setError(err instanceof Error ? err.message : "Unable to delete call."));
+  }
+
+  function clearAllCallLogs() {
+    setCallLogs([]);
+    void clearCallLogsFromDb().catch((err) => setError(err instanceof Error ? err.message : "Unable to clear calls."));
   }
 
   async function callBack(item: CallLogEntry) {
@@ -624,8 +724,11 @@ export function WorkspaceShell() {
   async function clearLocalStorageAndMedia() {
     window.localStorage.removeItem("ychat:call-logs");
     window.localStorage.removeItem("ychat:archived-conversations");
+    window.localStorage.removeItem("ychat:deleted-conversations");
     setCallLogs([]);
     setArchivedConversationIds([]);
+    setDeletedConversationIds([]);
+    void clearCallLogsFromDb().catch(() => undefined);
     if ("caches" in window) {
       const keys = await caches.keys();
       await Promise.all(keys.filter((key) => key.startsWith("ychat-")).map((key) => caches.delete(key)));
@@ -977,7 +1080,7 @@ export function WorkspaceShell() {
           )}
 
           {view === "calls" && (
-            <Page title="Calls" subtitle="Missed and recent Ychat calls." action={callLogs.length > 0 ? <button type="button" onClick={() => setCallLogs([])} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:border-rose-400/40 hover:text-rose-200">Clear all</button> : undefined}>
+            <Page title="Calls" subtitle="Missed and recent Ychat calls." action={callLogs.length > 0 ? <button type="button" onClick={clearAllCallLogs} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:border-rose-400/40 hover:text-rose-200">Clear all</button> : undefined}>
               <div className="mb-4 grid grid-cols-2 rounded-2xl border border-white/10 bg-[#0a1b2d] p-1">
                 {(["recent", "missed"] as const).map((filter) => (
                   <button key={filter} type="button" onClick={() => setCallFilter(filter)} className={`rounded-xl px-4 py-2.5 text-sm font-semibold capitalize ${callFilter === filter ? "bg-cyan-500 text-slate-950" : "text-slate-400 hover:text-white"}`}>{filter}</button>
@@ -994,7 +1097,7 @@ export function WorkspaceShell() {
                       <p className={`mt-0.5 text-xs ${item.direction === "missed" ? "text-rose-300" : "text-slate-500"}`}>{item.direction === "outgoing" ? "Outgoing" : item.direction === "incoming" ? "Incoming" : "Missed"} {item.mode} call · {formatTime(item.createdAt)}</p>
                     </div>
                     <button type="button" onClick={() => void callBack(item)} className="rounded-full p-2 text-cyan-300 hover:bg-white/5" title="Call back"><Phone className="h-4 w-4" /></button>
-                    <button type="button" onClick={() => setCallLogs((current) => current.filter((log) => log.id !== item.id))} className="rounded-full p-2 text-slate-500 hover:bg-white/5 hover:text-rose-200" title="Delete call"><Trash2 className="h-4 w-4" /></button>
+                    <button type="button" onClick={() => removeCallLog(item.id)} className="rounded-full p-2 text-slate-500 hover:bg-white/5 hover:text-rose-200" title="Delete call"><Trash2 className="h-4 w-4" /></button>
                   </div>
                 ))}
               </div>
