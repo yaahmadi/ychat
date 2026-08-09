@@ -1,4 +1,4 @@
-const CACHE_NAME = "ychat-v1.0.2";
+const CACHE_NAME = "ychat-v1.0.3";
 const APP_SHELL = [
   "/manifest.json",
   "/icon-192.png",
