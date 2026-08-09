@@ -1,4 +1,4 @@
-const CACHE_NAME = "ychat-v1.0.3";
+const CACHE_NAME = "ychat-v1.0.5";
 const APP_SHELL = [
   "/manifest.json",
   "/icon-192.png",
@@ -15,11 +15,20 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key)))
-    )
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "YCHAT_CLEAR_CACHE") {
+    event.waitUntil(
+      caches.keys()
+        .then((keys) => Promise.all(keys.map((key) => caches.delete(key))))
+        .then(() => self.skipWaiting())
+    );
+  }
 });
 
 self.addEventListener("fetch", (event) => {
@@ -31,7 +40,7 @@ self.addEventListener("fetch", (event) => {
 
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() => caches.match("/offline.html"))
+      fetch(request, { cache: "no-store" }).catch(() => caches.match("/offline.html"))
     );
     return;
   }
