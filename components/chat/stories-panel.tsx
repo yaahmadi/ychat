@@ -1,7 +1,7 @@
 "use client";
 
-import { Component, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ChangeEvent, ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import { Camera, Image as ImageIcon, Plus, Send, Trash2, Type, Video, X } from "lucide-react";
 import {
   createTextStory,
@@ -53,41 +53,7 @@ function StoryMedia({ story, className = "" }: { story: StoryRow; className?: st
   return <div className={`bg-cover bg-center ${className}`} style={{ backgroundImage: `url(${url})` }} />;
 }
 
-class StoryErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  state = { hasError: false };
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch() {
-    // Keep one broken story/media item from crashing the whole chat app.
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-0 flex-1 overflow-y-auto bg-[#06101d] p-6 pb-24 pt-[max(1rem,env(safe-area-inset-top))] text-slate-100">
-          <div className="mx-auto max-w-lg rounded-2xl border border-rose-500/20 bg-rose-950/40 p-5">
-            <p className="font-semibold text-rose-100">Stories could not open.</p>
-            <p className="mt-2 text-sm text-rose-100/75">Close and reopen Ychat once. Your account session is kept; this screen will recover on the next load.</p>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
 export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; userId: string | null }) {
-  return (
-    <StoryErrorBoundary>
-      <StoriesPanelContent profiles={profiles} userId={userId} />
-    </StoryErrorBoundary>
-  );
-}
-
-function StoriesPanelContent({ profiles, userId }: { profiles: ProfileRow[]; userId: string | null }) {
   const mediaInputRef = useRef<HTMLInputElement | null>(null);
   const [stories, setStories] = useState<StoryRow[]>([]);
   const [composer, setComposer] = useState<"text" | null>(null);
@@ -118,7 +84,12 @@ function StoriesPanelContent({ profiles, userId }: { profiles: ProfileRow[]; use
 
   const grouped = useMemo(() => {
     const map = new Map<string, StoryRow[]>();
-    for (const story of stories.filter((item) => item.id && item.user_id && item.expires_at)) {
+    const validStories = stories.filter((item) => {
+      if (!item?.id || !item.user_id || !item.expires_at) return false;
+      if (item.story_type === "text") return typeof item.body === "string" && item.body.trim().length > 0;
+      return (item.story_type === "image" || item.story_type === "video") && typeof item.media_path === "string" && item.media_path.length > 0;
+    });
+    for (const story of validStories) {
       const current = map.get(story.user_id) ?? [];
       current.push(story);
       map.set(story.user_id, current);
@@ -229,6 +200,7 @@ function StoriesPanelContent({ profiles, userId }: { profiles: ProfileRow[]; use
 
           {grouped.map(({ profileId, profile, items }) => {
             const latest = items[0];
+            if (!latest) return null;
             return (
               <button key={profileId} type="button" onClick={() => setViewerStory(latest)} className="flex w-20 shrink-0 flex-col items-center gap-2 text-center">
                 <div className="rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-teal-300 p-[2px]">
@@ -246,6 +218,7 @@ function StoriesPanelContent({ profiles, userId }: { profiles: ProfileRow[]; use
         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {grouped.map(({ profileId, profile, items }) => {
             const latest = items[0];
+            if (!latest) return null;
             return (
               <button key={profileId} type="button" onClick={() => setViewerStory(latest)} className="overflow-hidden rounded-3xl border border-white/10 bg-[#0a1b2d] text-left transition hover:border-cyan-400/25">
                 <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-[#0c2840] via-[#0b3650] to-[#075e72]">
