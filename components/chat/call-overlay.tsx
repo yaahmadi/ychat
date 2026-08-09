@@ -27,10 +27,11 @@ function StreamAudio({ stream }: { stream: MediaStream }) {
   useEffect(() => {
     if (ref.current && ref.current.srcObject !== stream) {
       ref.current.srcObject = stream;
+      void ref.current.play().catch(() => undefined);
     }
   }, [stream]);
 
-  return <audio ref={ref} autoPlay />;
+  return <audio ref={ref} autoPlay playsInline />;
 }
 
 export function IncomingCallCard({
@@ -43,24 +44,24 @@ export function IncomingCallCard({
   onDecline: () => void;
 }) {
   return (
-    <div className="fixed inset-x-3 top-3 z-[90] mx-auto max-w-md rounded-3xl border border-cyan-400/25 bg-[#071827]/95 p-5 shadow-2xl shadow-black/50 backdrop-blur-xl sm:top-6">
-      <div className="flex items-center gap-4">
-        <div className="relative flex h-14 w-14 items-center justify-center rounded-full bg-cyan-500/15 text-xl font-bold text-cyan-200 yama-call-pulse">
-          {initials(invite.callerName)}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-xs uppercase tracking-[0.18em] text-cyan-400">Incoming {invite.mode} call</p>
-          <p className="mt-1 truncate text-lg font-semibold text-white">{invite.callerName}</p>
-          <p className="truncate text-sm text-slate-400">{invite.conversationTitle}</p>
-        </div>
+    <div className="fixed inset-0 z-[90] flex flex-col items-center justify-center bg-[#020812]/98 px-6 text-center text-white backdrop-blur-xl">
+      <div className="relative flex h-32 w-32 items-center justify-center rounded-full bg-cyan-500/15 text-5xl font-bold text-cyan-200 yama-call-pulse">
+        {initials(invite.callerName)}
       </div>
-      <div className="mt-5 grid grid-cols-2 gap-3">
-        <button type="button" onClick={onDecline} className="flex items-center justify-center gap-2 rounded-2xl bg-rose-500 px-4 py-3 font-semibold text-white hover:bg-rose-400">
-          <PhoneOff className="h-5 w-5" /> Decline
+      <p className="mt-8 text-xs uppercase tracking-[0.22em] text-cyan-300">Incoming {invite.mode} call</p>
+      <h2 className="mt-3 max-w-sm truncate text-3xl font-semibold">{invite.callerName}</h2>
+      <p className="mt-2 max-w-sm truncate text-sm text-slate-400">{invite.conversationTitle}</p>
+      <div className="mt-12 flex w-full max-w-xs items-center justify-between gap-10">
+        <button type="button" onClick={onDecline} className="flex h-16 w-16 items-center justify-center rounded-full bg-rose-500 text-white shadow-lg shadow-rose-950/40">
+          <PhoneOff className="h-7 w-7" />
         </button>
-        <button type="button" onClick={onAccept} className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-4 py-3 font-semibold text-slate-950 hover:bg-emerald-400">
-          {invite.mode === "video" ? <Video className="h-5 w-5" /> : <Phone className="h-5 w-5" />} Accept
+        <button type="button" onClick={onAccept} className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-950/30">
+          {invite.mode === "video" ? <Video className="h-7 w-7" /> : <Phone className="h-7 w-7" />}
         </button>
+      </div>
+      <div className="mt-4 flex w-full max-w-xs items-center justify-between px-1 text-xs text-slate-400">
+        <span>Decline</span>
+        <span>Accept</span>
       </div>
     </div>
   );

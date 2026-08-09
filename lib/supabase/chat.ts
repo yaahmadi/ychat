@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import type { AttachmentRow, MessageRow, StoryRow } from "@/lib/supabase/types";
+import type { AttachmentRow, MessageRow, ProfileRow, StoryCommentRow, StoryRow } from "@/lib/supabase/types";
 
 function isJwtFutureError(error: unknown) {
   if (!error || typeof error !== "object") return false;
@@ -33,6 +33,26 @@ export async function getProfiles() {
     },
     (result) => (result as { error?: unknown }).error,
   );
+}
+
+export async function getContactProfiles() {
+  return retryAfterJwtClockSkew(
+    async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase.rpc("get_contact_profiles");
+      return { data: data as ProfileRow[] | null, error };
+    },
+    (result) => (result as { error?: unknown }).error,
+  );
+}
+
+export async function addContactByLookup(lookup: string) {
+  const clean = lookup.trim();
+  if (!clean) throw new Error("Enter an email, username, or Ychat ID.");
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("add_contact_by_lookup", { lookup: clean });
+  if (error) throw error;
+  return data as string;
 }
 
 export async function getConversations() {
@@ -263,6 +283,31 @@ export async function getStories() {
     .select("*")
     .gt("expires_at", new Date().toISOString())
     .order("created_at", { ascending: false });
+}
+
+export async function getStoryComments(storyId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("story_comments")
+    .select("*")
+    .eq("story_id", storyId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return data as StoryCommentRow[];
+}
+
+export async function createStoryComment(storyId: string, body: string) {
+  const supabase = createClient();
+  const userId = await currentUserId();
+  const clean = body.trim();
+  if (!clean) throw new Error("Comment cannot be empty.");
+  const { data, error } = await supabase
+    .from("story_comments")
+    .insert({ story_id: storyId, user_id: userId, body: clean })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as StoryCommentRow;
 }
 
 export async function createTextStory(body: string) {

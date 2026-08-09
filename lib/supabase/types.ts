@@ -8,6 +8,8 @@ export type ProfileRow = {
   role?: string | null;
   created_at?: string | null;
   phone_number?: string | null;
+  email_address?: string | null;
+  contact_code?: string | null;
 };
 
 export type ConversationMemberRow = {
@@ -48,6 +50,13 @@ export type AttachmentRow = {
   created_at?: string | null;
 };
 
+export type StoryCommentRow = {
+  id: string;
+  story_id: string;
+  user_id: string;
+  body: string;
+  created_at: string;
+};
 
 export type StoryRow = {
   id: string;

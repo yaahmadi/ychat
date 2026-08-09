@@ -97,6 +97,7 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
   const roomChannelRef = useRef<RealtimeChannel | null>(null);
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const pendingIceRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
+  const readyPeersRef = useRef<Set<string>>(new Set());
 
   const sendRoom = useCallback(async (event: string, payload: unknown) => {
     if (!roomChannelRef.current) return;
@@ -165,7 +166,10 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
         };
 
         pc.onconnectionstatechange = () => {
-          if (pc?.connectionState === "failed" || pc?.connectionState === "closed") {
+          if (pc?.connectionState === "failed") {
+            pc.restartIce();
+          }
+          if (pc?.connectionState === "closed") {
             closePeer(remoteUserId);
           }
         };
@@ -201,6 +205,7 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
         .on("broadcast", { event: "ready" }, ({ payload }) => {
           const from = String((payload as { from?: string }).from ?? "");
           if (!from || from === userId) return;
+          readyPeersRef.current.add(from);
           // Existing participants initiate a connection to each newly-ready participant.
           void createPeer(from, true);
         })
@@ -260,6 +265,9 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
           if (status === "SUBSCRIBED") {
             window.clearTimeout(timer);
             await room.send({ type: "broadcast", event: "ready", payload: { from: userId } });
+            window.setTimeout(() => {
+              void room.send({ type: "broadcast", event: "ready", payload: { from: userId } });
+            }, 700);
             resolve();
           }
           if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
@@ -311,6 +319,7 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
     for (const pc of peersRef.current.values()) pc.close();
     peersRef.current.clear();
     pendingIceRef.current.clear();
+    readyPeersRef.current.clear();
     setRemoteStreams({});
 
     localStreamRef.current?.getTracks().forEach((track) => track.stop());

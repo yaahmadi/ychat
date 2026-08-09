@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Bell,
   Building2,
@@ -38,12 +39,13 @@ import {
 } from "lucide-react";
 
 import {
+  addContactByLookup,
   createGroupConversation,
   getAttachmentDownloadUrl,
   getAttachments,
+  getContactProfiles,
   getConversations,
   getMessages,
-  getProfiles,
   requestNotificationPermission,
   sendMessage,
   startDirectConversation,
@@ -240,6 +242,8 @@ export function WorkspaceShell() {
   const [recording, setRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [creatingChat, setCreatingChat] = useState<string | null>(null);
+  const [contactLookup, setContactLookup] = useState("");
+  const [addingContact, setAddingContact] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [peopleOpen, setPeopleOpen] = useState(false);
   const [groupOpen, setGroupOpen] = useState(false);
@@ -280,7 +284,7 @@ export function WorkspaceShell() {
       setUserId(currentUserId);
 
       const [profilesResult, conversationsResult, attachmentsResult] = await Promise.all([
-        getProfiles(),
+        getContactProfiles(),
         getConversations(),
         getAttachments(),
       ]);
@@ -338,7 +342,7 @@ export function WorkspaceShell() {
       refreshTimer = setTimeout(() => {
         void (async () => {
           const [profilesResult, conversationsResult, attachmentsResult] = await Promise.all([
-            getProfiles(), getConversations(), getAttachments(),
+            getContactProfiles(), getConversations(), getAttachments(),
           ]);
           if (disposed) return;
           if (profilesResult.error) setError(profilesResult.error.message);
@@ -418,6 +422,8 @@ export function WorkspaceShell() {
   const currentProfile = useMemo(() => profiles.find((profile) => profile.id === userId) ?? null, [profiles, userId]);
 
   const otherProfiles = useMemo(() => profiles.filter((profile) => profile.id !== userId), [profiles, userId]);
+  const shareCode = currentProfile?.contact_code || currentProfile?.username || userId || "";
+  const shareText = `Add me on Ychat with this ID: ${shareCode}`;
 
   function navigateView(nextView: ViewName) {
     if (nextView === "settings" && currentProfile) {
@@ -519,6 +525,24 @@ export function WorkspaceShell() {
       setError(err instanceof Error ? err.message : "Unable to create conversation.");
     } finally {
       setCreatingChat(null);
+    }
+  }
+
+  async function handleAddContact() {
+    if (addingContact) return;
+    setAddingContact(true);
+    setError(null);
+    try {
+      const contactId = await addContactByLookup(contactLookup);
+      setContactLookup("");
+      const profilesResult = await getContactProfiles();
+      if (profilesResult.error) throw profilesResult.error;
+      setProfiles((profilesResult.data ?? []) as ProfileRow[]);
+      await handleStartChat(contactId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to add contact.");
+    } finally {
+      setAddingContact(false);
     }
   }
 
@@ -800,6 +824,10 @@ export function WorkspaceShell() {
                 {peopleOpen && (
                   <div className="border-b border-white/10 bg-[#0a1b2d] p-3">
                     <div className="mb-2 flex items-center justify-between px-1"><p className="text-xs font-semibold uppercase tracking-wider text-cyan-400">New chat</p><button type="button" onClick={() => setPeopleOpen(false)}><X className="h-4 w-4 text-slate-500" /></button></div>
+                    <div className="mb-3 flex gap-2">
+                      <input value={contactLookup} onChange={(event) => setContactLookup(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void handleAddContact(); }} placeholder="Email, username or Ychat ID" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#102438] px-3 py-2 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-500/30" />
+                      <button type="button" onClick={() => void handleAddContact()} disabled={!contactLookup.trim() || addingContact} className="rounded-xl bg-cyan-500 px-3 text-sm font-semibold text-slate-950 disabled:opacity-40">Add</button>
+                    </div>
                     <div className="max-h-56 space-y-1 overflow-y-auto ychat-scrollbar">
                       {otherProfiles.map((profile) => (
                         <button key={profile.id} type="button" disabled={creatingChat === profile.id} onClick={() => void handleStartChat(profile.id)} className="flex w-full items-center gap-3 rounded-xl p-2.5 text-left hover:bg-white/5 disabled:opacity-50">
@@ -923,8 +951,17 @@ export function WorkspaceShell() {
           )}
 
           {view === "people" && (
-            <Page title="People" subtitle={`${profiles.length} registered users`}>
+            <Page title="People" subtitle={`${otherProfiles.length} contacts`}>
+              <div className="mb-5 rounded-2xl border border-white/10 bg-[#0a1b2d] p-4">
+                <p className="text-sm font-semibold">Add a contact</p>
+                <p className="mt-1 text-xs text-slate-500">Only contacts you add can appear here. Ask them for their Ychat ID, username, or email.</p>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  <input value={contactLookup} onChange={(event) => setContactLookup(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void handleAddContact(); }} placeholder="Email, username or Ychat ID" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-500/30" />
+                  <button type="button" onClick={() => void handleAddContact()} disabled={!contactLookup.trim() || addingContact} className="rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950 disabled:opacity-40">{addingContact ? "Adding..." : "Add contact"}</button>
+                </div>
+              </div>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{otherProfiles.map((profile) => <button type="button" key={profile.id} onClick={() => void handleStartChat(profile.id)} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-[#0a1b2d] p-4 text-left hover:border-cyan-400/25"><div className="relative"><Avatar profile={profile} size="lg" />{isProfileOnline(profile) && <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-[#0a1b2d] bg-emerald-400" />}</div><div className="min-w-0 flex-1"><p className="truncate font-semibold">{profile.display_name}</p><p className="truncate text-sm text-slate-500">@{profile.username || "user"}</p><p className={`mt-1 text-xs ${isProfileOnline(profile) ? "text-emerald-400" : "text-slate-600"}`}>{isProfileOnline(profile) ? "online" : "offline"}</p></div><MessageCircle className="h-5 w-5 text-cyan-300" /></button>)}</div>
+              {otherProfiles.length === 0 && <Empty icon={<Users className="h-8 w-8" />} title="No contacts yet" text="Share your Ychat ID or add someone by email, username, or ID." />}
             </Page>
           )}
 
@@ -961,6 +998,20 @@ export function WorkspaceShell() {
                   <p className="mt-3 text-xs text-slate-500">Tap your avatar to change your profile picture. Your name and photo update across chats and groups.</p>
                 </div>
                 <SettingRow icon={<Building2 className="h-5 w-5" />} title="Install Ychat" text="Install this PWA on Android, iPhone/iPad or desktop for an app-like experience." action={<button type="button" onClick={() => void installPwa()} className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950">{installReady ? "Install" : "How to install"}</button>} />
+                <div className="rounded-2xl border border-white/10 bg-[#0a1b2d] p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-200"><MessageCircle className="h-5 w-5" /></div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium">Your Ychat ID</p>
+                      <p className="mt-1 break-all font-mono text-sm text-cyan-200">{currentProfile?.contact_code || currentProfile?.username || "Loading..."}</p>
+                      <p className="mt-1 text-sm leading-5 text-slate-500">Share this QR code, ID, or email link so people can add you privately.</p>
+                    </div>
+                    <div className="rounded-2xl bg-white p-2 text-slate-950">
+                      <QRCodeSVG value={shareCode || "Ychat"} size={104} marginSize={1} />
+                    </div>
+                    <a href={`mailto:?subject=Add me on Ychat&body=${encodeURIComponent(shareText)}`} className="rounded-xl border border-white/10 px-4 py-2 text-center text-sm">Share by email</a>
+                  </div>
+                </div>
                 <SettingRow icon={<Bell className="h-5 w-5" />} title="Message and call notifications" text={`Browser permission: ${notificationPermission}`} action={<button type="button" onClick={() => void enableNotifications()} className="rounded-xl border border-white/10 px-4 py-2 text-sm">Enable</button>} />
                 <SettingRow icon={<Video className="h-5 w-5" />} title="Calling" text="Voice/video calls use encrypted browser WebRTC media with Supabase realtime signaling. HTTPS is required outside localhost." />
                 <SettingRow icon={<LogOut className="h-5 w-5" />} title="Sign out" text="End this browser session." action={<button type="button" onClick={() => void handleLogout()} className="rounded-xl bg-rose-500/15 px-4 py-2 text-sm font-medium text-rose-300">Logout</button>} />

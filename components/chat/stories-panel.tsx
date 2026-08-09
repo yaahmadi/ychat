@@ -5,13 +5,15 @@ import type { ChangeEvent } from "react";
 import { Camera, Image as ImageIcon, Plus, Send, Trash2, Type, Video, X } from "lucide-react";
 import {
   createTextStory,
+  createStoryComment,
   deleteStory,
+  getStoryComments,
   getStories,
   getStoryMediaUrl,
   subscribeToStories,
   uploadStoryMedia,
 } from "@/lib/supabase/chat";
-import type { ProfileRow, StoryRow } from "@/lib/supabase/types";
+import type { ProfileRow, StoryCommentRow, StoryRow } from "@/lib/supabase/types";
 
 function initials(name?: string | null) {
   return (name?.trim()?.slice(0, 1) || "U").toUpperCase();
@@ -55,6 +57,8 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewerStory, setViewerStory] = useState<StoryRow | null>(null);
+  const [comments, setComments] = useState<StoryCommentRow[]>([]);
+  const [commentText, setCommentText] = useState("");
 
   const refresh = useCallback(async () => {
     const { data, error: storyError } = await getStories();
@@ -131,6 +135,36 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
   }
 
   const viewerProfile = viewerStory ? profiles.find((profile) => profile.id === viewerStory.user_id) : null;
+
+  useEffect(() => {
+    if (!viewerStory) return;
+    let cancelled = false;
+    void getStoryComments(viewerStory.id)
+      .then((rows) => {
+        if (!cancelled) setComments(rows);
+      })
+      .catch((err) => setError(err instanceof Error ? err.message : "Unable to load story comments."));
+    return () => {
+      cancelled = true;
+    };
+  }, [viewerStory]);
+
+  async function sendComment() {
+    if (!viewerStory || !commentText.trim()) return;
+    try {
+      const comment = await createStoryComment(viewerStory.id, commentText);
+      setComments((current) => [...current, comment]);
+      setCommentText("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to send story comment.");
+    }
+  }
+
+  function closeViewer() {
+    setViewerStory(null);
+    setComments([]);
+    setCommentText("");
+  }
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto bg-[#06101d] p-4 pb-24 sm:p-6 lg:p-8">
@@ -211,13 +245,28 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
 
       {viewerStory && (
         <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/95 p-3 sm:p-6">
-          <div className="relative flex h-[min(86vh,760px)] w-full max-w-md overflow-hidden rounded-3xl bg-gradient-to-br from-[#0b2f49] via-[#0a4b61] to-[#075e72] shadow-2xl">
+          <div className="relative flex h-[min(90vh,820px)] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-gradient-to-br from-[#0b2f49] via-[#0a4b61] to-[#075e72] shadow-2xl">
+            <div className="relative min-h-0 flex-1">
             {viewerStory.story_type === "text" ? <div className="flex h-full w-full items-center justify-center p-10 text-center text-3xl font-semibold leading-[1.35] text-white">{viewerStory.body}</div> : <StoryMedia story={viewerStory} className="h-full w-full object-contain" />}
             <div className="absolute inset-x-0 top-0 flex items-center gap-3 bg-gradient-to-b from-black/75 to-transparent p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-white">{initials(viewerProfile?.display_name)}</div>
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-white">{viewerProfile?.display_name || "User"}</p><p className="text-[11px] text-white/60">expires in {timeLeft(viewerStory.expires_at)}</p></div>
               {viewerStory.user_id === userId && <button type="button" onClick={() => void removeStory(viewerStory.id)} className="rounded-full bg-black/25 p-2 text-white/80 hover:bg-rose-500/40"><Trash2 className="h-4 w-4" /></button>}
-              <button type="button" onClick={() => setViewerStory(null)} className="rounded-full bg-black/25 p-2 text-white/80"><X className="h-4 w-4" /></button>
+              <button type="button" onClick={closeViewer} className="rounded-full bg-black/25 p-2 text-white/80"><X className="h-4 w-4" /></button>
+            </div>
+            </div>
+            <div className="border-t border-white/10 bg-black/30 p-3">
+              <div className="max-h-28 space-y-2 overflow-y-auto ychat-scrollbar">
+                {comments.map((comment) => {
+                  const author = profiles.find((profile) => profile.id === comment.user_id);
+                  return <div key={comment.id} className="text-xs text-white/85"><span className="font-semibold text-cyan-200">{author?.display_name || "User"}: </span>{comment.body}</div>;
+                })}
+                {comments.length === 0 && <p className="text-xs text-white/45">No comments yet.</p>}
+              </div>
+              <div className="mt-3 flex gap-2">
+                <input value={commentText} onChange={(event) => setCommentText(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void sendComment(); }} placeholder="Comment on story" className="min-w-0 flex-1 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white outline-none placeholder:text-white/45" />
+                <button type="button" onClick={() => void sendComment()} disabled={!commentText.trim()} className="rounded-full bg-cyan-500 px-4 text-sm font-semibold text-slate-950 disabled:opacity-40">Send</button>
+              </div>
             </div>
           </div>
         </div>
