@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-const PWA_CACHE_VERSION = "ychat-v1.0.5";
+const PWA_CACHE_VERSION = "ychat-v1.0.6";
 
 declare global {
   interface Window {
