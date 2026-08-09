@@ -67,3 +67,23 @@ export type StoryRow = {
   created_at: string;
   expires_at: string;
 };
+
+export type CallLogRow = {
+  id: string;
+  user_id: string;
+  conversation_id?: string | null;
+  title: string;
+  mode: "audio" | "video";
+  direction: "incoming" | "outgoing" | "missed";
+  created_at: string;
+};
+
+export type ConversationUserStateRow = {
+  user_id: string;
+  conversation_id: string;
+  archived_at?: string | null;
+  deleted_at?: string | null;
+  muted_until?: string | null;
+  pinned_at?: string | null;
+  updated_at?: string | null;
+};
