@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Bluetooth, Keyboard, Mic, MicOff, Phone, PhoneOff, Volume2, Video, VideoOff } from "lucide-react";
+import { Bluetooth, Keyboard, Mic, MicOff, Phone, PhoneOff, UserPlus, Users, Volume2, Video, VideoOff } from "lucide-react";
 import type { ActiveCall, CallInvite } from "@/hooks/use-web-rtc-call";
 import type { ProfileRow } from "@/lib/supabase/types";
 
@@ -15,6 +15,27 @@ type MediaElementWithSink = HTMLMediaElement & {
 
 function canSelectAudioOutput() {
   return typeof HTMLMediaElement !== "undefined" && "setSinkId" in HTMLMediaElement.prototype;
+}
+
+function playTone(frequency = 520, durationMs = 120) {
+  try {
+    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const context = new AudioContextClass();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.frequency.value = frequency;
+    oscillator.type = "sine";
+    gain.gain.setValueAtTime(0.08, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + durationMs / 1000);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + durationMs / 1000);
+    window.setTimeout(() => void context.close().catch(() => undefined), durationMs + 80);
+  } catch {
+    // Browser audio output can be blocked until a user gesture.
+  }
 }
 
 function StreamVideo({ stream, muted = false, sinkId, className = "" }: { stream: MediaStream; muted?: boolean; sinkId?: string; className?: string }) {
@@ -97,6 +118,7 @@ export function ActiveCallOverlay({
   onToggleMute,
   onToggleCamera,
   onHangUp,
+  callError,
 }: {
   call: ActiveCall;
   localStream: MediaStream | null;
@@ -107,9 +129,15 @@ export function ActiveCallOverlay({
   onToggleMute: () => void;
   onToggleCamera: () => void;
   onHangUp: () => void;
+  callError?: string | null;
 }) {
   const remotes = Object.entries(remoteStreams);
   const profileName = (id: string) => profiles.find((profile) => profile.id === id)?.display_name || "Participant";
+  const otherIds = call.memberIds.filter((id) => id !== call.callerId);
+  const primaryName = call.isCaller
+    ? (call.conversationTitle === "Private conversation" ? profileName(otherIds[0] || "") : call.conversationTitle)
+    : call.callerName;
+  const callState = callError || (remotes.length > 0 ? "Connected" : call.isCaller ? "Calling..." : "In call");
   const [audioMenuOpen, setAudioMenuOpen] = useState(false);
   const [keypadOpen, setKeypadOpen] = useState(false);
   const [dialed, setDialed] = useState("");
@@ -137,12 +165,20 @@ export function ActiveCallOverlay({
     return audioDevices.find((device) => device.deviceId === audioOutputId)?.label || "Selected audio";
   }, [audioDevices, audioOutputId, outputSupported]);
 
+  useEffect(() => {
+    if (!call.isCaller || remotes.length > 0 || callError) return;
+    playTone(440, 140);
+    const timer = window.setInterval(() => playTone(440, 140), 2200);
+    return () => window.clearInterval(timer);
+  }, [call.isCaller, callError, remotes.length]);
+
   return (
     <div className="fixed inset-0 z-[100] flex flex-col bg-[#020812]/98 text-white backdrop-blur-xl">
-      <header className="flex items-center justify-between border-b border-white/10 px-5 py-4 sm:px-8">
+      <header className="flex items-center justify-between border-b border-white/10 px-5 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-8">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-cyan-400">{call.mode === "video" ? "Video call" : "Voice call"}</p>
-          <h2 className="mt-1 text-lg font-semibold">{call.conversationTitle}</h2>
+          <h2 className="mt-1 max-w-[70vw] truncate text-xl font-semibold">{call.isCaller ? `Calling ${primaryName}` : primaryName}</h2>
+          <p className={`mt-1 text-xs ${callError ? "text-rose-300" : "text-slate-400"}`}>{callState}</p>
         </div>
         <div className="text-right text-xs text-slate-400">{remotes.length + 1} connected</div>
       </header>
@@ -153,11 +189,11 @@ export function ActiveCallOverlay({
             {remotes.length === 0 && (
               <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-white/10 bg-[#071827]">
                 <div className="text-center">
-                  <div className="relative mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-cyan-500/15 text-3xl font-bold text-cyan-200 yama-call-pulse">
-                    {initials(call.callerName)}
+                  <div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-cyan-500/15 text-4xl font-bold text-cyan-200 yama-call-pulse">
+                    {initials(primaryName)}
                   </div>
-                  <p className="mt-5 font-medium">Calling…</p>
-                  <p className="mt-1 text-sm text-slate-500">Waiting for participants to join</p>
+                  <p className="mt-5 text-lg font-medium">{primaryName}</p>
+                  <p className={`mt-1 text-sm ${callError ? "text-rose-300" : "text-slate-500"}`}>{callState}</p>
                 </div>
               </div>
             )}
@@ -169,14 +205,16 @@ export function ActiveCallOverlay({
             ))}
           </div>
         ) : (
-          <div className="flex max-w-3xl flex-wrap items-center justify-center gap-8">
+          <div className="text-center">
             <div className="text-center">
-              <div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/25 to-blue-500/15 text-3xl font-bold text-cyan-200 yama-call-pulse">
-                {initials(call.callerName)}
+              <div className="relative mx-auto flex h-36 w-36 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/25 to-blue-500/15 text-5xl font-bold text-cyan-200 yama-call-pulse">
+                {initials(primaryName)}
               </div>
-              <p className="mt-4 font-medium">{call.isCaller ? "You" : call.callerName}</p>
+              <p className="mt-5 text-2xl font-semibold">{primaryName}</p>
+              <p className={`mt-1 text-sm ${callError ? "text-rose-300" : "text-slate-500"}`}>{callState}</p>
             </div>
-            {call.memberIds.filter((id) => id !== call.callerId).map((id) => (
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-5">
+            {otherIds.map((id) => (
               <div key={id} className="text-center">
                 <div className={`mx-auto flex h-24 w-24 items-center justify-center rounded-full border text-2xl font-semibold ${remoteStreams[id] ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200" : "border-white/10 bg-white/5 text-slate-400"}`}>
                   {initials(profileName(id))}
@@ -185,6 +223,7 @@ export function ActiveCallOverlay({
                 <p className="text-xs text-slate-500">{remoteStreams[id] ? "Connected" : "Ringing…"}</p>
               </div>
             ))}
+            </div>
             {remotes.map(([id, stream]) => <StreamAudio key={`audio-${id}`} stream={stream} sinkId={audioOutputId} />)}
           </div>
         )}
@@ -221,8 +260,8 @@ export function ActiveCallOverlay({
         <div className="mx-auto mb-3 w-[min(92vw,360px)] rounded-2xl border border-white/10 bg-[#071827] p-4 shadow-2xl">
           <div className="mb-3 rounded-xl bg-white/5 px-3 py-2 text-center font-mono text-lg tracking-widest text-cyan-100">{dialed || "Dial pad"}</div>
           <div className="grid grid-cols-3 gap-2">
-            {"123456789*0#".split("").map((key) => (
-              <button key={key} type="button" onClick={() => setDialed((current) => `${current}${key}`)} className="rounded-2xl bg-white/10 py-3 text-xl font-semibold hover:bg-white/15">{key}</button>
+            {"123456789*0#".split("").map((key, index) => (
+              <button key={key} type="button" onClick={() => { playTone(420 + index * 28, 110); setDialed((current) => `${current}${key}`); }} className="rounded-2xl bg-white/10 py-3 text-xl font-semibold hover:bg-white/15">{key}</button>
             ))}
           </div>
           <button type="button" onClick={() => setDialed("")} className="mt-3 w-full rounded-xl border border-white/10 py-2 text-sm text-slate-300">Clear</button>
@@ -230,21 +269,27 @@ export function ActiveCallOverlay({
       )}
 
       <footer className="flex items-center justify-center gap-3 border-t border-white/10 bg-[#06101d]/95 px-3 py-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:gap-4 sm:px-4 sm:py-5">
-        <button type="button" onClick={onToggleMute} className={`flex h-12 w-12 items-center justify-center rounded-full border ${muted ? "border-rose-400/40 bg-rose-500/20 text-rose-300" : "border-white/10 bg-white/10 text-white"}`} aria-label="Toggle microphone">
+        <button type="button" onClick={() => { playTone(muted ? 620 : 360, 90); onToggleMute(); }} className={`flex h-12 w-12 items-center justify-center rounded-full border ${muted ? "border-rose-400/40 bg-rose-500/20 text-rose-300" : "border-white/10 bg-white/10 text-white"}`} aria-label="Toggle microphone" title="Mute">
           {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
         </button>
-        <button type="button" onClick={() => setAudioMenuOpen((current) => !current)} className="flex h-12 min-w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 px-3 text-white" aria-label="Audio output" title={audioOutputLabel}>
+        <button type="button" onClick={() => { playTone(520, 90); setAudioMenuOpen((current) => !current); }} className="flex h-12 min-w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 px-3 text-white" aria-label="Audio output" title={audioOutputLabel}>
           <Volume2 className="h-5 w-5" />
         </button>
-        <button type="button" onClick={() => setKeypadOpen((current) => !current)} className={`flex h-12 w-12 items-center justify-center rounded-full border ${keypadOpen ? "border-cyan-400/40 bg-cyan-500/20 text-cyan-200" : "border-white/10 bg-white/10 text-white"}`} aria-label="Dial pad">
+        <button type="button" onClick={() => { playTone(460, 90); setKeypadOpen((current) => !current); }} className={`flex h-12 w-12 items-center justify-center rounded-full border ${keypadOpen ? "border-cyan-400/40 bg-cyan-500/20 text-cyan-200" : "border-white/10 bg-white/10 text-white"}`} aria-label="Dial pad" title="Keypad">
           <Keyboard className="h-5 w-5" />
+        </button>
+        <button type="button" onClick={() => playTone(560, 90)} className="hidden h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white sm:flex" aria-label="Add contact" title="Add contact">
+          <UserPlus className="h-5 w-5" />
+        </button>
+        <button type="button" onClick={() => playTone(580, 90)} className="hidden h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white sm:flex" aria-label="Merge call" title="Merge call">
+          <Users className="h-5 w-5" />
         </button>
         {call.mode === "video" && (
           <button type="button" onClick={onToggleCamera} className={`flex h-12 w-12 items-center justify-center rounded-full border ${cameraOff ? "border-amber-400/40 bg-amber-500/20 text-amber-300" : "border-white/10 bg-white/10 text-white"}`} aria-label="Toggle camera">
             {cameraOff ? <VideoOff className="h-5 w-5" /> : <Video className="h-5 w-5" />}
           </button>
         )}
-        <button type="button" onClick={onHangUp} className="flex h-14 w-14 items-center justify-center rounded-full bg-rose-500 text-white shadow-lg shadow-rose-950/40 hover:bg-rose-400" aria-label="Hang up">
+        <button type="button" onClick={() => { playTone(260, 140); onHangUp(); }} className="flex h-14 w-14 items-center justify-center rounded-full bg-rose-500 text-white shadow-lg shadow-rose-950/40 hover:bg-rose-400" aria-label="Hang up">
           <PhoneOff className="h-6 w-6" />
         </button>
       </footer>
