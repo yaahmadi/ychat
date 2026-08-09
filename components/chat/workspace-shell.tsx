@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import {
+  Archive,
   Bell,
   Building2,
   Check,
@@ -45,11 +47,13 @@ import {
   getAttachments,
   getContactProfiles,
   getConversations,
+  getStories,
   getMessages,
   requestNotificationPermission,
   sendMessage,
   startDirectConversation,
   subscribeToMessages,
+  subscribeToStories,
   uploadChatFile,
   uploadProfileAvatar,
   updateMyProfile,
@@ -64,6 +68,7 @@ import type {
   ConversationRow,
   MessageRow,
   ProfileRow,
+  StoryRow,
 } from "@/lib/supabase/types";
 
 type ViewName = "stories" | "calls" | "chats" | "people" | "groups" | "files" | "admin" | "settings";
@@ -88,6 +93,7 @@ const EMOJIS = [
 ];
 
 const STICKERS = ["👍", "❤️", "😂", "🎉", "🔥", "🚀", "💯", "👏", "🤝", "🫡", "✅", "☕"];
+const APP_VERSION = "1.0.0";
 
 type CallLogEntry = {
   id: string;
@@ -95,6 +101,7 @@ type CallLogEntry = {
   mode: CallMode;
   direction: "incoming" | "outgoing" | "missed";
   createdAt: string;
+  conversationId?: string;
 };
 
 function initials(name?: string | null) {
@@ -244,6 +251,7 @@ export function WorkspaceShell() {
   const [conversations, setConversations] = useState<ConversationRow[]>([]);
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
+  const [stories, setStories] = useState<StoryRow[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
@@ -279,6 +287,17 @@ export function WorkspaceShell() {
     }
   });
   const [callFilter, setCallFilter] = useState<"recent" | "missed">("recent");
+  const [chatSelectMode, setChatSelectMode] = useState(false);
+  const [selectedConversationIds, setSelectedConversationIds] = useState<string[]>([]);
+  const [archivedConversationIds, setArchivedConversationIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = window.localStorage.getItem("ychat:archived-conversations");
+      return saved ? (JSON.parse(saved) as string[]) : [];
+    } catch {
+      return [];
+    }
+  });
 
   async function refreshConversations(preferredId?: string) {
     const { data, error: conversationsError } = await getConversations();
@@ -446,13 +465,46 @@ export function WorkspaceShell() {
     window.localStorage.setItem("ychat:call-logs", JSON.stringify(callLogs.slice(0, 80)));
   }, [callLogs]);
 
+  useEffect(() => {
+    window.localStorage.setItem("ychat:archived-conversations", JSON.stringify(archivedConversationIds));
+  }, [archivedConversationIds]);
+
+  useEffect(() => {
+    let disposed = false;
+    async function loadStories() {
+      const { data } = await getStories();
+      if (!disposed) setStories((data ?? []) as StoryRow[]);
+    }
+    void loadStories();
+    const channel = subscribeToStories(() => void loadStories());
+    return () => {
+      disposed = true;
+      void channel.unsubscribe();
+    };
+  }, []);
+
   const currentProfile = useMemo(() => profiles.find((profile) => profile.id === userId) ?? null, [profiles, userId]);
 
   const otherProfiles = useMemo(() => profiles.filter((profile) => profile.id !== userId), [profiles, userId]);
   const shareCode = currentProfile?.contact_code || currentProfile?.username || userId || "";
   const shareText = `Add me on Ychat with this ID: ${shareCode}`;
 
+  const chatStories = useMemo(() => {
+    const map = new Map<string, StoryRow[]>();
+    for (const story of stories) {
+      const list = map.get(story.user_id) ?? [];
+      list.push(story);
+      map.set(story.user_id, list);
+    }
+    return Array.from(map.entries()).map(([profileId, items]) => ({
+      profileId,
+      profile: profiles.find((profile) => profile.id === profileId) ?? null,
+      items,
+    }));
+  }, [profiles, stories]);
+
   function navigateView(nextView: ViewName) {
+    setError(null);
     if (nextView === "settings" && currentProfile) {
       setProfileName(currentProfile.display_name || "");
       setProfileUsername(currentProfile.username || "");
@@ -483,9 +535,10 @@ export function WorkspaceShell() {
   }
 
   const searchQuery = search.trim().toLowerCase();
+  const visibleConversations = conversations.filter((conversation) => !archivedConversationIds.includes(conversation.id));
   const filteredConversations = searchQuery
-    ? conversations.filter((conversation) => getConversationName(conversation).toLowerCase().includes(searchQuery))
-    : conversations;
+    ? visibleConversations.filter((conversation) => getConversationName(conversation).toLowerCase().includes(searchQuery))
+    : visibleConversations;
 
   const activeMembers = useMemo(() => {
     if (!activeConversation) return [];
@@ -501,17 +554,18 @@ export function WorkspaceShell() {
     ].slice(0, 80));
   }
 
-  async function beginCall(mode: CallMode) {
-    if (!activeConversation) return;
-    const title = getConversationName(activeConversation);
+  async function beginCall(mode: CallMode, conversationOverride?: ConversationRow) {
+    const conversation = conversationOverride ?? activeConversation;
+    if (!conversation) return;
+    const title = getConversationName(conversation);
     try {
       await call.startCall({
-        conversationId: activeConversation.id,
+        conversationId: conversation.id,
         conversationTitle: title,
         mode,
-        memberIds: activeConversation.conversation_members?.map((member) => member.user_id) ?? [],
+        memberIds: conversation.conversation_members?.map((member) => member.user_id) ?? [],
       });
-      logCall({ title, mode, direction: "outgoing" });
+      logCall({ title, mode, direction: "outgoing", conversationId: conversation.id });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to start call.");
     }
@@ -519,19 +573,23 @@ export function WorkspaceShell() {
 
   async function acceptIncomingCall() {
     if (call.incomingCall) {
-      logCall({ title: call.incomingCall.conversationTitle, mode: call.incomingCall.mode, direction: "incoming" });
+      logCall({ title: call.incomingCall.conversationTitle, mode: call.incomingCall.mode, direction: "incoming", conversationId: call.incomingCall.conversationId });
     }
     await call.acceptCall();
   }
 
   function declineIncomingCall() {
     if (call.incomingCall) {
-      logCall({ title: call.incomingCall.conversationTitle, mode: call.incomingCall.mode, direction: "missed" });
+      logCall({ title: call.incomingCall.conversationTitle, mode: call.incomingCall.mode, direction: "missed", conversationId: call.incomingCall.conversationId });
     }
     void call.declineCall();
   }
 
   function selectConversation(conversationId: string) {
+    if (chatSelectMode) {
+      setSelectedConversationIds((current) => current.includes(conversationId) ? current.filter((id) => id !== conversationId) : [...current, conversationId]);
+      return;
+    }
     setMessages([]);
     setError(null);
     setActiveConversationId(conversationId);
@@ -539,6 +597,39 @@ export function WorkspaceShell() {
     setEmojiOpen(false);
     setStickerOpen(false);
     setPlusOpen(false);
+  }
+
+  function archiveSelectedChats() {
+    setArchivedConversationIds((current) => [...new Set([...current, ...selectedConversationIds])]);
+    if (activeConversationId && selectedConversationIds.includes(activeConversationId)) setActiveConversationId(null);
+    setSelectedConversationIds([]);
+    setChatSelectMode(false);
+  }
+
+  function deleteSelectedChats() {
+    archiveSelectedChats();
+  }
+
+  async function callBack(item: CallLogEntry) {
+    const conversation = conversations.find((row) => row.id === item.conversationId);
+    if (!conversation) {
+      setError("Open the chat first to call this contact again.");
+      return;
+    }
+    setActiveConversationId(conversation.id);
+    setView("chats");
+    await beginCall(item.mode, conversation);
+  }
+
+  async function clearLocalStorageAndMedia() {
+    window.localStorage.removeItem("ychat:call-logs");
+    window.localStorage.removeItem("ychat:archived-conversations");
+    setCallLogs([]);
+    setArchivedConversationIds([]);
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.filter((key) => key.startsWith("ychat-")).map((key) => caches.delete(key)));
+    }
   }
 
   async function handleSend(messageType: string = "text", overrideBody?: string) {
@@ -826,6 +917,7 @@ export function WorkspaceShell() {
           onToggleMute={call.toggleMute}
           onToggleCamera={call.toggleCamera}
           onHangUp={() => void call.hangUp()}
+          callError={call.callError}
         />
       )}
 
@@ -901,6 +993,7 @@ export function WorkspaceShell() {
                       <p className="truncate text-sm font-semibold">{item.title}</p>
                       <p className={`mt-0.5 text-xs ${item.direction === "missed" ? "text-rose-300" : "text-slate-500"}`}>{item.direction === "outgoing" ? "Outgoing" : item.direction === "incoming" ? "Incoming" : "Missed"} {item.mode} call · {formatTime(item.createdAt)}</p>
                     </div>
+                    <button type="button" onClick={() => void callBack(item)} className="rounded-full p-2 text-cyan-300 hover:bg-white/5" title="Call back"><Phone className="h-4 w-4" /></button>
                     <button type="button" onClick={() => setCallLogs((current) => current.filter((log) => log.id !== item.id))} className="rounded-full p-2 text-slate-500 hover:bg-white/5 hover:text-rose-200" title="Delete call"><Trash2 className="h-4 w-4" /></button>
                   </div>
                 ))}
@@ -924,6 +1017,23 @@ export function WorkspaceShell() {
                   <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#102438] px-3 py-2.5 text-slate-400">
                     <Search className="h-4 w-4" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search or start new chat" className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-500" />
                   </div>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    {chatSelectMode ? (
+                      <>
+                        <span className="text-xs text-slate-400">{selectedConversationIds.length} selected</span>
+                        <div className="flex gap-1">
+                          <button type="button" onClick={archiveSelectedChats} disabled={selectedConversationIds.length === 0} className="rounded-lg px-2 py-1.5 text-xs text-slate-300 hover:bg-white/5 disabled:opacity-40"><Archive className="inline h-3.5 w-3.5" /> Archive</button>
+                          <button type="button" onClick={deleteSelectedChats} disabled={selectedConversationIds.length === 0} className="rounded-lg px-2 py-1.5 text-xs text-rose-300 hover:bg-white/5 disabled:opacity-40"><Trash2 className="inline h-3.5 w-3.5" /> Delete</button>
+                          <button type="button" onClick={() => { setChatSelectMode(false); setSelectedConversationIds([]); }} className="rounded-lg px-2 py-1.5 text-xs text-slate-400 hover:bg-white/5">Cancel</button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-xs text-slate-500">Chats</span>
+                        <button type="button" onClick={() => setChatSelectMode(true)} className="rounded-lg px-2 py-1.5 text-xs text-cyan-300 hover:bg-white/5">Select</button>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {peopleOpen && (
@@ -946,12 +1056,27 @@ export function WorkspaceShell() {
                 )}
 
                 <div className="flex-1 overflow-y-auto ychat-scrollbar">
+                  <div className="border-b border-white/[0.045] px-4 py-3">
+                    <div className="flex gap-4 overflow-x-auto pb-1 ychat-scrollbar">
+                      <button type="button" onClick={() => navigateView("stories")} className="flex w-16 shrink-0 flex-col items-center gap-1.5 text-center">
+                        <span className="flex h-12 w-12 items-center justify-center rounded-full border border-dashed border-cyan-400/60 text-cyan-300"><Plus className="h-5 w-5" /></span>
+                        <span className="w-full truncate text-[10px] text-slate-400">Story</span>
+                      </button>
+                      {chatStories.map(({ profileId, profile, items }) => (
+                        <button key={profileId} type="button" onClick={() => navigateView("stories")} className="flex w-16 shrink-0 flex-col items-center gap-1.5 text-center">
+                          <span className="rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 p-[2px]"><span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-[#071827] bg-[#102438] text-sm font-semibold text-cyan-100">{initials(profile?.display_name)}</span></span>
+                          <span className="w-full truncate text-[10px] text-slate-300">{profileId === userId ? "You" : profile?.display_name || "User"} {items.length > 1 ? `(${items.length})` : ""}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   {filteredConversations.length === 0 ? (
                     <div className="p-8 text-center text-slate-500"><MessageSquare className="mx-auto h-10 w-10 opacity-30" /><p className="mt-4 text-sm">No conversations yet</p><button type="button" onClick={() => setPeopleOpen(true)} className="mt-3 text-sm text-cyan-400">Start a new chat</button></div>
                   ) : filteredConversations.map((conversation) => {
                     const profile = getConversationProfile(conversation);
                     return (
-                      <button key={conversation.id} type="button" onClick={() => selectConversation(conversation.id)} className={`flex w-full items-center gap-3 border-b border-white/[0.045] px-4 py-3 text-left transition hover:bg-white/[0.035] ${activeConversationId === conversation.id ? "bg-[#102438]" : ""}`}>
+                      <button key={conversation.id} type="button" onClick={() => selectConversation(conversation.id)} className={`flex w-full items-center gap-3 border-b border-white/[0.045] px-4 py-3 text-left transition hover:bg-white/[0.035] ${activeConversationId === conversation.id || selectedConversationIds.includes(conversation.id) ? "bg-[#102438]" : ""}`}>
+                        {chatSelectMode && <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selectedConversationIds.includes(conversation.id) ? "border-cyan-400 bg-cyan-500 text-slate-950" : "border-white/20"}`}>{selectedConversationIds.includes(conversation.id) && <Check className="h-3.5 w-3.5" />}</div>}
                         {conversation.type === "group" ? <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cyan-500/15 text-cyan-200"><Users className="h-5 w-5" /></div> : <div className="relative"><Avatar profile={profile} />{isProfileOnline(profile) && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#071827] bg-emerald-400" />}</div>}
                         <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="truncate text-[15px] font-medium">{getConversationName(conversation)}</p><span className="text-[11px] text-slate-500">{formatTime(conversation.updated_at)}</span></div><p className="mt-1 truncate text-xs text-slate-500">{conversation.type === "group" ? `${conversation.conversation_members?.length ?? 0} members` : isProfileOnline(profile) ? "online" : "Tap to open conversation"}</p></div>
                       </button>
@@ -1130,7 +1255,16 @@ export function WorkspaceShell() {
                 </div>
                 <SettingRow icon={<Bell className="h-5 w-5" />} title="Message and call notifications" text={`Browser permission: ${notificationPermission}`} action={<button type="button" onClick={() => void enableNotifications()} className="rounded-xl border border-white/10 px-4 py-2 text-sm">Enable</button>} />
                 <SettingRow icon={<Video className="h-5 w-5" />} title="Calling" text="Voice/video calls use encrypted browser WebRTC media with Supabase realtime signaling. HTTPS is required outside localhost." />
+                <SettingRow icon={<HardDriveUpload className="h-5 w-5" />} title="Storage and media" text="Clear local call history, archived-chat state and cached PWA media on this device." action={<button type="button" onClick={() => void clearLocalStorageAndMedia()} className="rounded-xl border border-white/10 px-4 py-2 text-sm">Clear</button>} />
                 <SettingRow icon={<LogOut className="h-5 w-5" />} title="Sign out" text="End this browser session." action={<button type="button" onClick={() => void handleLogout()} className="rounded-xl bg-rose-500/15 px-4 py-2 text-sm font-medium text-rose-300">Logout</button>} />
+                <div className="rounded-2xl border border-white/10 bg-[#0a1b2d] p-5 text-sm text-slate-400">
+                  <div className="flex flex-wrap gap-4">
+                    <Link href="/terms" className="hover:text-white">Terms</Link>
+                    <Link href="/privacy" className="hover:text-white">Privacy</Link>
+                  </div>
+                  <p className="mt-4">Ychat version {APP_VERSION}</p>
+                  <p className="mt-1">© 2026 Yama Ahmadi Services Informatiques. All rights reserved.</p>
+                </div>
               </div>
             </Page>
           )}
@@ -1145,7 +1279,7 @@ export function WorkspaceShell() {
 }
 
 function Page({ title, subtitle, action, children }: { title: string; subtitle: string; action?: ReactNode; children: ReactNode }) {
-  return <div className="min-h-0 flex-1 overflow-y-auto bg-[#06101d] p-4 pb-24 sm:p-6 lg:p-8"><div className="mx-auto max-w-6xl"><div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row"><div className="min-w-0"><h1 className="text-2xl font-semibold">{title}</h1><p className="mt-1 text-sm text-slate-500">{subtitle}</p></div>{action}</div>{children}</div></div>;
+  return <div className="min-h-0 flex-1 overflow-y-auto bg-[#06101d] p-4 pb-24 pt-[max(1rem,env(safe-area-inset-top))] sm:p-6 lg:p-8"><div className="mx-auto max-w-6xl"><div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row"><div className="min-w-0"><h1 className="text-2xl font-semibold">{title}</h1><p className="mt-1 text-sm text-slate-500">{subtitle}</p></div>{action}</div>{children}</div></div>;
 }
 
 function Empty({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
