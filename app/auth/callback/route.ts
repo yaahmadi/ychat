@@ -34,7 +34,7 @@ export async function GET(request: Request) {
   const next =
     requestedNext.startsWith("/") && !requestedNext.startsWith("//")
       ? requestedNext
-      : "/";
+      : "/chat";
 
   if (!code) {
     return loginError(appUrl, "Missing authentication code");
@@ -56,4 +56,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

@@ -52,6 +52,10 @@ function friendlyAuthError(value: unknown) {
     return `${message} Check the Supabase Phone provider and Twilio Messaging Service configuration.`;
   }
 
+  if (/invalid login credentials/i.test(message)) {
+    return "The email or password is not correct.";
+  }
+
   return message;
 }
 
@@ -159,37 +163,28 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
+      const phoneProfileData =
+        displayName.trim() || mode === "signup"
+          ? { display_name: displayName.trim() || normalized }
+          : undefined;
 
       const { error: otpError } = await supabase.auth.signInWithOtp({
         phone: normalized,
         options: {
-          shouldCreateUser: mode === "signup",
-          data:
-            mode === "signup"
-              ? { display_name: displayName.trim() || normalized }
-              : undefined,
+          shouldCreateUser: true,
+          data: phoneProfileData,
         },
       });
 
       if (otpError) throw otpError;
 
+      setPhone(normalized);
       setOtpSent(true);
       setMessage("Verification code sent by SMS.");
     } catch (err) {
       const text = friendlyAuthError(err);
 
-      if (
-        /user not found|signups? not allowed/i.test(
-          err instanceof Error ? err.message : "",
-        ) &&
-        mode === "signin"
-      ) {
-        setError(
-          "No phone account exists for this number. Choose Create account first.",
-        );
-      } else {
-        setError(text);
-      }
+      setError(text);
     } finally {
       setLoading(false);
     }
@@ -235,7 +230,7 @@ export default function LoginPage() {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${authCallbackUrl}?next=/chat`,
+          redirectTo: authCallbackUrl,
           queryParams: {
             prompt: "select_account",
           },
@@ -498,9 +493,7 @@ export default function LoginPage() {
               >
                 {loading
                   ? "Sending code..."
-                  : mode === "signin"
-                    ? "Send login code"
-                    : "Send signup code"}
+                  : "Send SMS code"}
               </button>
             )}
 
@@ -539,4 +532,3 @@ export default function LoginPage() {
     </main>
   );
 }
-
