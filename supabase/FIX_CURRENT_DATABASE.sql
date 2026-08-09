@@ -672,8 +672,13 @@ values ('profile-media', 'profile-media', true)
 on conflict (id) do update set public = true;
 
 drop policy if exists profile_media_insert on storage.objects;
+drop policy if exists profile_media_read on storage.objects;
 drop policy if exists profile_media_update_own on storage.objects;
 drop policy if exists profile_media_delete_own on storage.objects;
+
+create policy profile_media_read
+on storage.objects for select
+using (bucket_id = 'profile-media');
 
 create policy profile_media_insert
 on storage.objects for insert to authenticated
