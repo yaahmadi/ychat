@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ChangeEvent } from "react";
+import { Component, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { ChangeEvent, ReactNode } from "react";
 import { Camera, Image as ImageIcon, Plus, Send, Trash2, Type, Video, X } from "lucide-react";
 import {
   createTextStory,
@@ -28,6 +28,7 @@ function timeLeft(expiresAt: string) {
 
 function StoryMedia({ story, className = "" }: { story: StoryRow; className?: string }) {
   const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (!story.media_path) return;
@@ -36,12 +37,15 @@ function StoryMedia({ story, className = "" }: { story: StoryRow; className?: st
       .then((next) => {
         if (mounted) setUrl(next);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (mounted) setFailed(true);
+      });
     return () => {
       mounted = false;
     };
   }, [story.media_path]);
 
+  if (failed) return <div className={`flex items-center justify-center bg-white/5 text-xs text-white/60 ${className}`}>Media unavailable</div>;
   if (!url) return <div className={`animate-pulse bg-white/5 ${className}`} />;
   if (story.story_type === "video") {
     return <video className={className} src={url} controls playsInline preload="metadata" />;
@@ -49,7 +53,41 @@ function StoryMedia({ story, className = "" }: { story: StoryRow; className?: st
   return <div className={`bg-cover bg-center ${className}`} style={{ backgroundImage: `url(${url})` }} />;
 }
 
+class StoryErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch() {
+    // Keep one broken story/media item from crashing the whole chat app.
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[#06101d] p-6 pb-24 pt-[max(1rem,env(safe-area-inset-top))] text-slate-100">
+          <div className="mx-auto max-w-lg rounded-2xl border border-rose-500/20 bg-rose-950/40 p-5">
+            <p className="font-semibold text-rose-100">Stories could not open.</p>
+            <p className="mt-2 text-sm text-rose-100/75">Close and reopen Ychat once. Your account session is kept; this screen will recover on the next load.</p>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; userId: string | null }) {
+  return (
+    <StoryErrorBoundary>
+      <StoriesPanelContent profiles={profiles} userId={userId} />
+    </StoryErrorBoundary>
+  );
+}
+
+function StoriesPanelContent({ profiles, userId }: { profiles: ProfileRow[]; userId: string | null }) {
   const mediaInputRef = useRef<HTMLInputElement | null>(null);
   const [stories, setStories] = useState<StoryRow[]>([]);
   const [composer, setComposer] = useState<"text" | null>(null);
@@ -80,7 +118,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
 
   const grouped = useMemo(() => {
     const map = new Map<string, StoryRow[]>();
-    for (const story of stories) {
+    for (const story of stories.filter((item) => item.id && item.user_id && item.expires_at)) {
       const current = map.get(story.user_id) ?? [];
       current.push(story);
       map.set(story.user_id, current);
@@ -88,7 +126,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
     return Array.from(map.entries()).map(([profileId, items]) => ({
       profileId,
       profile: profiles.find((profile) => profile.id === profileId) ?? null,
-      items,
+      items: items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
     }));
   }, [profiles, stories]);
 
@@ -195,7 +233,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
               <button key={profileId} type="button" onClick={() => setViewerStory(latest)} className="flex w-20 shrink-0 flex-col items-center gap-2 text-center">
                 <div className="rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-teal-300 p-[2px]">
                   <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-[#06101d] bg-[#0a1b2d] text-lg font-semibold text-cyan-200">
-                    {latest.story_type === "text" ? initials(profile?.display_name) : <StoryMedia story={latest} className="h-full w-full object-cover" />}
+                    {latest.story_type === "text" ? initials(profile?.display_name) : <StoryMedia key={latest.id} story={latest} className="h-full w-full object-cover" />}
                     {latest.story_type === "video" && <span className="absolute bottom-1 right-1 rounded-full bg-black/60 p-1"><Video className="h-3 w-3 text-white" /></span>}
                   </div>
                 </div>
@@ -214,7 +252,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
                   {latest.story_type === "text" ? (
                     <div className="flex h-full items-center justify-center p-8 text-center text-2xl font-semibold leading-9 text-white">{latest.body}</div>
                   ) : (
-                    <StoryMedia story={latest} className="h-full w-full object-cover" />
+                    <StoryMedia key={latest.id} story={latest} className="h-full w-full object-cover" />
                   )}
                   <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center gap-3 bg-gradient-to-b from-black/65 to-transparent p-4">
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-500/20 text-xs font-semibold text-cyan-100">{initials(profile?.display_name)}</div>
@@ -247,7 +285,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
         <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/95 p-3 sm:p-6">
           <div className="relative flex h-[min(90vh,820px)] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-gradient-to-br from-[#0b2f49] via-[#0a4b61] to-[#075e72] shadow-2xl">
             <div className="relative min-h-0 flex-1">
-            {viewerStory.story_type === "text" ? <div className="flex h-full w-full items-center justify-center p-10 text-center text-3xl font-semibold leading-[1.35] text-white">{viewerStory.body}</div> : <StoryMedia story={viewerStory} className="h-full w-full object-contain" />}
+            {viewerStory.story_type === "text" ? <div className="flex h-full w-full items-center justify-center p-10 text-center text-3xl font-semibold leading-[1.35] text-white">{viewerStory.body}</div> : <StoryMedia key={viewerStory.id} story={viewerStory} className="h-full w-full object-contain" />}
             <div className="absolute inset-x-0 top-0 flex items-center gap-3 bg-gradient-to-b from-black/75 to-transparent p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-white">{initials(viewerProfile?.display_name)}</div>
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-white">{viewerProfile?.display_name || "User"}</p><p className="text-[11px] text-white/60">expires in {timeLeft(viewerStory.expires_at)}</p></div>
@@ -264,8 +302,8 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
                 {comments.length === 0 && <p className="text-xs text-white/45">No comments yet.</p>}
               </div>
               <div className="mt-3 flex gap-2">
-                <input value={commentText} onChange={(event) => setCommentText(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void sendComment(); }} placeholder="Comment on story" className="min-w-0 flex-1 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white outline-none placeholder:text-white/45" />
-                <button type="button" onClick={() => void sendComment()} disabled={!commentText.trim()} className="rounded-full bg-cyan-500 px-4 text-sm font-semibold text-slate-950 disabled:opacity-40">Send</button>
+                <input value={commentText} onChange={(event) => setCommentText(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void sendComment(); }} placeholder={userId ? "Comment on story" : "Sign in to comment"} disabled={!userId} className="min-w-0 flex-1 rounded-full border border-white/10 bg-white/10 px-4 py-2 text-sm text-white outline-none placeholder:text-white/45 disabled:opacity-50" />
+                <button type="button" onClick={() => void sendComment()} disabled={!userId || !commentText.trim()} className="rounded-full bg-cyan-500 px-4 text-sm font-semibold text-slate-950 disabled:opacity-40">Send</button>
               </div>
             </div>
           </div>
