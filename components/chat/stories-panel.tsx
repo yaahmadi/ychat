@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent } from "react";
 import { Camera, Image as ImageIcon, Plus, Send, Trash2, Type, Video, X } from "lucide-react";
 import {
@@ -56,22 +56,23 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
   const [error, setError] = useState<string | null>(null);
   const [viewerStory, setViewerStory] = useState<StoryRow | null>(null);
 
-  async function refresh() {
+  const refresh = useCallback(async () => {
     const { data, error: storyError } = await getStories();
     if (storyError) {
       setError(storyError.message);
       return;
     }
     setStories((data ?? []) as StoryRow[]);
-  }
+  }, []);
 
   useEffect(() => {
-    void refresh();
+    const initialLoad = window.setTimeout(() => void refresh(), 0);
     const channel = subscribeToStories(() => void refresh());
     return () => {
+      window.clearTimeout(initialLoad);
       void channel.unsubscribe();
     };
-  }, []);
+  }, [refresh]);
 
   const grouped = useMemo(() => {
     const map = new Map<string, StoryRow[]>();

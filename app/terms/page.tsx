@@ -27,7 +27,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-lg font-semibold text-white">2. Accounts</h2>
             <p className="mt-2">
-              You are responsible for providing accurate account information, protecting your credentials and devices, and all activity performed through your account. You must not impersonate another person or misuse another person's account.
+              You are responsible for providing accurate account information, protecting your credentials and devices, and all activity performed through your account. You must not impersonate another person or misuse another person&apos;s account.
             </p>
           </section>
 

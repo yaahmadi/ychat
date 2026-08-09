@@ -10,14 +10,27 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const supabase = createClient();
+    let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (!mounted) return;
+      if (error || !data.session) {
         router.replace("/auth/login");
       } else {
         setLoading(false);
       }
     });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!mounted) return;
+      if (!session) router.replace("/auth/login");
+      else setLoading(false);
+    });
+
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
   }, [router]);
 
   if (loading) {

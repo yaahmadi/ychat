@@ -457,8 +457,10 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
   }, [closePeer, userId]);
 
   useEffect(() => {
+    const peers = peersRef.current;
     return () => {
-      for (const pc of peersRef.current.values()) pc.close();
+      for (const pc of peers.values()) pc.close();
+      peers.clear();
       localStreamRef.current?.getTracks().forEach((track) => track.stop());
     };
   }, []);

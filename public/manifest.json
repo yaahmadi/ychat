@@ -3,7 +3,7 @@
   "short_name": "Ychat",
   "description": "Realtime text, voice, file and video communication for Ychat users.",
   "id": "/",
-  "start_url": "/",
+  "start_url": "/chat",
   "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
@@ -18,7 +18,7 @@
     { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    { "name": "Open chats", "short_name": "Chats", "url": "/" },
-    { "name": "New conversation", "short_name": "New chat", "url": "/?action=new-chat" }
+    { "name": "Open chats", "short_name": "Chats", "url": "/chat" },
+    { "name": "New conversation", "short_name": "New chat", "url": "/chat?action=new-chat" }
   ]
 }

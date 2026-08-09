@@ -15,7 +15,6 @@ import {
   Files,
   Group,
   HardDriveUpload,
-  ImageIcon,
   LockKeyhole,
   LogOut,
   MessageCircle,
@@ -262,15 +261,6 @@ export function WorkspaceShell() {
     setConversations(rows);
     if (preferredId) setActiveConversationId(preferredId);
     else if (!activeConversationId && rows[0]?.id) setActiveConversationId(rows[0].id);
-  }
-
-  async function refreshAttachments() {
-    const { data, error: filesError } = await getAttachments();
-    if (filesError) {
-      setError(filesError.message);
-      return;
-    }
-    setAttachments((data ?? []) as AttachmentRow[]);
   }
 
   useEffect(() => {
