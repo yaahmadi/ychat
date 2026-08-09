@@ -100,7 +100,7 @@ const EMOJIS = [
 ];
 
 const STICKERS = ["👍", "❤️", "😂", "🎉", "🔥", "🚀", "💯", "👏", "🤝", "🫡", "✅", "☕"];
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.0.5";
 
 type CallLogEntry = {
   id: string;
@@ -711,13 +711,27 @@ export function WorkspaceShell() {
   }
 
   async function callBack(item: CallLogEntry) {
-    const conversation = conversations.find((row) => row.id === item.conversationId);
+    let conversation = conversations.find((row) => row.id === item.conversationId);
     if (!conversation) {
-      setError("Open the chat first to call this contact again.");
+      const { data, error: conversationsError } = await getConversations();
+      if (conversationsError) {
+        setError(conversationsError.message);
+        return;
+      }
+      const rows = (data ?? []) as ConversationRow[];
+      setConversations(rows);
+      conversation = rows.find((row) => row.id === item.conversationId)
+        ?? rows.find((row) => getConversationName(row).toLowerCase() === item.title.toLowerCase());
+    }
+    if (!conversation) {
+      setError("This call no longer has a linked chat. Add or open the contact, then call again.");
       return;
     }
+    setArchivedConversationIds((current) => current.filter((id) => id !== conversation.id));
+    setDeletedConversationIds((current) => current.filter((id) => id !== conversation.id));
     setActiveConversationId(conversation.id);
     setView("chats");
+    setError(null);
     await beginCall(item.mode, conversation);
   }
 
