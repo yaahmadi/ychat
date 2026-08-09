@@ -1,0 +1,276 @@
+﻿create extension if not exists "uuid-ossp";
+
+create table if not exists public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  display_name text not null,
+  username text unique,
+  avatar_url text,
+  status text not null default 'offline',
+  last_seen timestamptz,
+  role text not null default 'user' check (role in ('user','admin','owner')),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.conversations (
+  id uuid primary key default gen_random_uuid(),
+  type text not null check (type in ('direct','group')),
+  title text,
+  created_by uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.conversation_members (
+  conversation_id uuid not null references public.conversations(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  member_role text not null default 'member' check (member_role in ('member','admin','owner')),
+  joined_at timestamptz not null default now(),
+  primary key (conversation_id, user_id)
+);
+
+create table if not exists public.messages (
+  id uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null references public.conversations(id) on delete cascade,
+  sender_id uuid not null references auth.users(id) on delete cascade,
+  body text not null,
+  message_type text not null default 'text' check (message_type in ('text','code','image','file')),
+  reply_to_id uuid references public.messages(id) on delete set null,
+  edited_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.attachments (
+  id uuid primary key default gen_random_uuid(),
+  message_id uuid not null references public.messages(id) on delete cascade,
+  uploader_id uuid not null references auth.users(id) on delete cascade,
+  file_name text not null,
+  file_path text not null,
+  mime_type text,
+  file_size bigint,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.message_reads (
+  message_id uuid not null references public.messages(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  read_at timestamptz not null default now(),
+  primary key (message_id, user_id)
+);
+
+create index if not exists idx_conversation_members_user_id on public.conversation_members(user_id);
+create index if not exists idx_messages_conversation_created on public.messages(conversation_id, created_at desc);
+create index if not exists idx_messages_sender on public.messages(sender_id);
+create index if not exists idx_attachments_message on public.attachments(message_id);
+
+alter table public.profiles enable row level security;
+alter table public.conversations enable row level security;
+alter table public.conversation_members enable row level security;
+alter table public.messages enable row level security;
+alter table public.attachments enable row level security;
+alter table public.message_reads enable row level security;
+
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.profiles (id, display_name, username, role)
+  values (
+    new.id,
+    coalesce(new.raw_user_meta_data->>'display_name', split_part(new.email, '@', 1)),
+    coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1)),
+    'user'
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+create or replace trigger on_auth_user_created
+after insert on auth.users
+for each row execute function public.handle_new_user();
+
+drop policy if exists profiles_select_own on public.profiles;
+
+create policy profiles_select_own
+on public.profiles
+for select
+using (auth.uid() = id);
+
+drop policy if exists profiles_select_authorized on public.profiles;
+
+create policy profiles_select_authorized
+on public.profiles
+for select
+using (true);
+
+drop policy if exists conversations_select_member on public.conversations;
+
+create policy conversations_select_member
+on public.conversations
+for select
+using (
+  exists (
+    select 1 from public.conversation_members cm
+    where cm.conversation_id = conversations.id and cm.user_id = auth.uid()
+  )
+);
+
+drop policy if exists conversations_insert_member on public.conversations;
+
+create policy conversations_insert_member
+on public.conversations
+for insert
+with check (auth.uid() = created_by);
+
+drop policy if exists conversation_members_select_member on public.conversation_members;
+
+create policy conversation_members_select_member
+on public.conversation_members
+for select
+using (
+  user_id = auth.uid() or exists (
+    select 1 from public.conversation_members cm
+    where cm.conversation_id = conversation_members.conversation_id and cm.user_id = auth.uid()
+  )
+);
+
+drop policy if exists conversation_members_insert_admin on public.conversation_members;
+
+create policy conversation_members_insert_admin
+on public.conversation_members
+for insert
+with check (
+  auth.uid() is not null and (
+    exists (
+      select 1 from public.conversation_members cm
+      where cm.conversation_id = conversation_members.conversation_id and cm.user_id = auth.uid() and cm.member_role in ('admin','owner')
+    ) or auth.uid() = (
+      select created_by from public.conversations where id = conversation_members.conversation_id
+    )
+  )
+);
+
+drop policy if exists messages_select_member on public.messages;
+
+create policy messages_select_member
+on public.messages
+for select
+using (
+  exists (
+    select 1 from public.conversation_members cm
+    where cm.conversation_id = messages.conversation_id and cm.user_id = auth.uid()
+  )
+);
+
+drop policy if exists messages_insert_member on public.messages;
+
+create policy messages_insert_member
+on public.messages
+for insert
+with check (
+  sender_id = auth.uid() and exists (
+    select 1 from public.conversation_members cm
+    where cm.conversation_id = messages.conversation_id and cm.user_id = auth.uid()
+  )
+);
+
+drop policy if exists messages_update_own on public.messages;
+
+create policy messages_update_own
+on public.messages
+for update
+using (sender_id = auth.uid())
+with check (sender_id = auth.uid());
+
+drop policy if exists messages_delete_own on public.messages;
+
+create policy messages_delete_own
+on public.messages
+for delete
+using (sender_id = auth.uid());
+
+drop policy if exists attachments_select_member on public.attachments;
+
+create policy attachments_select_member
+on public.attachments
+for select
+using (
+  exists (
+    select 1 from public.messages m
+    join public.conversation_members cm on cm.conversation_id = m.conversation_id and cm.user_id = auth.uid()
+    where m.id = attachments.message_id
+  )
+);
+
+drop policy if exists attachments_insert_member on public.attachments;
+
+create policy attachments_insert_member
+on public.attachments
+for insert
+with check (
+  uploader_id = auth.uid() and exists (
+    select 1 from public.messages m
+    join public.conversation_members cm on cm.conversation_id = m.conversation_id and cm.user_id = auth.uid()
+    where m.id = attachments.message_id
+  )
+);
+
+drop policy if exists message_reads_select_member on public.message_reads;
+
+create policy message_reads_select_member
+on public.message_reads
+for select
+using (
+  user_id = auth.uid() or exists (
+    select 1 from public.messages m
+    join public.conversation_members cm on cm.conversation_id = m.conversation_id and cm.user_id = auth.uid()
+    where m.id = message_reads.message_id
+  )
+);
+
+drop policy if exists message_reads_insert_own on public.message_reads;
+
+create policy message_reads_insert_own
+on public.message_reads
+for insert
+with check (user_id = auth.uid());
+
+drop policy if exists message_reads_update_own on public.message_reads;
+
+create policy message_reads_update_own
+on public.message_reads
+for update
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+drop policy if exists profiles_update_own on public.profiles;
+
+create policy profiles_update_own
+on public.profiles
+for update
+using (auth.uid() = id)
+with check (auth.uid() = id and role = (select role from public.profiles where id = auth.uid()));
+
+drop policy if exists profiles_admin_update_roles on public.profiles;
+
+create policy profiles_admin_update_roles
+on public.profiles
+for update
+using (
+  exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid() and p.role in ('admin','owner')
+  )
+)
+with check (
+  role in ('user','admin','owner') and (
+    role <> 'owner' or exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid() and p.role = 'owner'
+    )
+  )
+);
+

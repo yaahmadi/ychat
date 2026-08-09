@@ -1,0 +1,32 @@
+YCHAT v0.1.2
+===================
+
+This build fixes the two issues reported after v0.1.1:
+1. Sending chat messages now returns and renders the inserted row immediately; Realtime remains for incoming messages.
+2. The left navigation is now functional: Chats, Groups, People, Files, Admin, and Settings each open a real workspace view.
+
+Also included:
+- New Chat from People.
+- Group creation and group chat navigation.
+- File upload from an active chat using the paperclip button.
+- Files view with signed private download links.
+- Admin overview for owner/admin accounts.
+- Settings/profile view and logout.
+- Mobile navigation.
+
+INSTALL
+-------
+1. Keep your existing .env.local. Do not overwrite it.
+2. Copy/extract this package over the project.
+3. In Supabase SQL Editor run the ENTIRE file:
+   supabase/FIX_CURRENT_DATABASE.sql
+4. Then run:
+   npm install
+   npm run lint
+   npm run build
+   npm run dev
+5. Test with two signed-in accounts in separate browsers/incognito windows.
+
+IMPORTANT
+---------
+If Supabase reports JWT issued at future, sync Windows date/time and restart the browser.

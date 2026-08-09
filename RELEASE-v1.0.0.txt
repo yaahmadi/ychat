@@ -1,0 +1,12 @@
+Ychat v1.0.0
+============
+Final branding: Ychat
+
+New in this release:
+- Phone OTP now supports both existing users and first-time phone users.
+- Story media expanded from text/photo to text/photo/video.
+- Chat photo/video attachments render inline with controls/previews.
+- Profile editing: display name, username and profile photo.
+- Public profile avatar bucket with authenticated owner upload/update/delete.
+- PWA metadata renamed to Ychat.
+- Existing realtime chat, groups, emoji/stickers, voice messages, files, voice/video calls and group calls retained.

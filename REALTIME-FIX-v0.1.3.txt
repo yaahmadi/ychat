@@ -1,0 +1,13 @@
+Ychat v0.1.3
+
+Fix: new conversations, membership changes, new profiles, and attachments now refresh automatically via Supabase Realtime.
+
+Required after copying this version:
+1. Keep your existing .env.local.
+2. Run supabase/FIX_CURRENT_DATABASE.sql in Supabase SQL Editor once.
+3. npm install
+4. npm run lint
+5. npm run build
+6. npm run dev
+
+Test with two browser sessions. When one user creates a direct chat, it should appear for the other user without manually refreshing the page.

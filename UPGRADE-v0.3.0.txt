@@ -1,0 +1,27 @@
+YCHAT v0.3.0 FINAL FEATURE BUILD
+
+Added on top of v0.2.0:
+- WhatsApp-style Stories/Status section
+- Text stories (24-hour expiry)
+- Photo stories (private Supabase storage, signed URLs)
+- Story viewer and owner delete control
+- Story realtime updates
+- Email/password authentication
+- Google authentication
+- Mobile-number SMS OTP authentication UI and flow
+- Profile phone-number capture from Supabase Auth
+
+Already included:
+- Direct realtime text chat
+- Emoji and stickers
+- Voice messages
+- File/image sharing
+- Group creation and group messaging
+- Voice/video direct calls
+- Group voice/video WebRTC mesh calling
+- PWA install, app icon, splash assets
+- Responsive WhatsApp-inspired desktop/mobile UI
+
+IMPORTANT:
+Phone login requires Phone Auth + an SMS provider enabled in Supabase Dashboard.
+Voice/video calls outside localhost require HTTPS. TURN is recommended for reliable production calls.

@@ -1,0 +1,61 @@
+YCHAT v0.2.0
+===================
+
+Included
+--------
+- WhatsApp-inspired responsive chat layout (original Yama branding)
+- Yama Ahmadi logo in workspace and sign-in
+- Generated PWA app icon + launch artwork
+- Installable PWA manifest + service worker + offline page
+- Mobile bottom navigation and phone-friendly full-screen chat
+- Realtime direct messaging
+- Realtime group messaging and group creation
+- Emoji picker
+- Large emoji stickers
+- File sharing
+- Voice-message recording and playback
+- Voice calls via browser WebRTC
+- Video calls via browser WebRTC
+- Group voice/video calling using peer-to-peer mesh WebRTC
+- Incoming-call card while the app/PWA is open
+- Browser notifications while the app is open/backgrounded
+- Optional TURN server environment variables for production call reliability
+- Online/last-seen heartbeat
+- Files, People, Groups, Admin and Settings screens
+- Idempotent Supabase repair script (safe to rerun)
+
+IMPORTANT DATABASE STEP
+-----------------------
+In VS Code PowerShell:
+
+Get-Content ".\supabase\FIX_CURRENT_DATABASE.sql" -Raw | Set-Clipboard
+
+Then Supabase Dashboard -> SQL Editor -> New query -> Ctrl+V -> Run.
+
+LOCAL TEST
+----------
+npm install
+npm run lint
+npm run build
+npm run dev
+
+Open http://localhost:3000
+
+PWA / MOBILE
+------------
+For real phone installation, microphone/camera and PWA behavior, deploy the site over HTTPS.
+Set NEXT_PUBLIC_APP_URL to the production HTTPS URL.
+
+Android/Chrome: browser menu -> Install app / Add to Home screen.
+iPhone/iPad Safari: Share -> Add to Home Screen.
+
+CALLING
+-------
+The project includes Google public STUN servers. This works on many normal home/mobile networks.
+For reliable calling across corporate networks, carrier NAT and restrictive firewalls, configure a TURN service:
+
+NEXT_PUBLIC_TURN_URL=
+NEXT_PUBLIC_TURN_USERNAME=
+NEXT_PUBLIC_TURN_CREDENTIAL=
+
+For production-grade incoming calls when the PWA is completely closed, Web Push/FCM/APNs-style push delivery is additionally required. The current realtime incoming-call UI works while the app/PWA is open (including a background browser tab where the realtime connection remains alive).

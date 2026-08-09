@@ -1,0 +1,18 @@
+YCHAT PHONE AUTH SETUP
+======================
+
+The frontend uses Supabase signInWithOtp({ phone, shouldCreateUser: true }).
+That means an existing phone user can sign in and a first-time phone number can create an account after OTP verification.
+
+Supabase > Authentication > Providers > Phone:
+1. Enable Phone provider.
+2. Select your SMS provider.
+3. For Twilio:
+   - Account SID starts with AC...
+   - Auth Token is secret.
+   - Messaging Service SID starts with MG...
+   - Do NOT put an SK... API Key SID in the Messaging Service SID field.
+4. Enable phone confirmations.
+5. Save.
+
+Twilio trial accounts can send only within trial restrictions/verified-recipient limits. After the trial, SMS delivery requires an active paid provider.

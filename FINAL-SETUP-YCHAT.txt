@@ -1,0 +1,58 @@
+YCHAT v1.0.0 FINAL SETUP
+========================
+
+Included features
+- Realtime 1:1 text chat
+- Realtime group chat + group creation
+- Emoji and sticker messages
+- Photo, video, audio and document attachments
+- Voice-message recording and playback
+- WebRTC voice calls and video calls
+- Group voice/video calls (browser WebRTC mesh)
+- 24-hour Stories: text, photo and video
+- Profile display-name, username and profile-photo editing
+- Google sign-in
+- Email/password sign-in and signup
+- Mobile-number SMS OTP sign-in/signup through Supabase Phone Auth
+- PWA install support for Android, iPhone/iPad and desktop
+- Realtime profile/conversation/message/story updates
+
+1) Preserve .env.local
+The release ZIP intentionally does not include your private .env.local.
+Keep your existing file in the project root.
+
+2) Apply database upgrade
+PowerShell:
+Get-Content ".\\supabase\\FIX_CURRENT_DATABASE.sql" -Raw | Set-Clipboard
+
+Supabase > SQL Editor > New query > paste > Run.
+The script is intended to be rerunnable and upgrades story video + profile avatar storage.
+
+3) Twilio / Supabase Phone Auth
+Supabase > Authentication > Providers > Phone:
+- Enable Phone provider
+- Twilio Account SID must start with AC
+- Twilio Auth Token is secret
+- Twilio Messaging Service SID must start with MG (NOT SK)
+- Enable phone confirmations
+
+An SID beginning SK is a Twilio API Key SID and is not the Messaging Service SID.
+Create/select a Twilio Messaging Service and use its MG... SID.
+
+4) Local verification
+npm install
+npm run lint
+npm run build
+npm run dev
+
+5) Calling requirements
+Camera/microphone require localhost or HTTPS.
+For reliable calls on restrictive mobile/corporate networks, configure TURN:
+NEXT_PUBLIC_TURN_URL=
+NEXT_PUBLIC_TURN_USERNAME=
+NEXT_PUBLIC_TURN_CREDENTIAL=
+
+6) PWA
+Deploy on HTTPS for normal phone installation.
+Android Chrome: Install app / Add to Home Screen.
+iPhone Safari: Share > Add to Home Screen.
