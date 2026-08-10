@@ -1,0 +1,13 @@
+Ychat v1.0.1
+
+Fixes in this package:
+- Rebuilt Stories/Status into a WhatsApp-style Updates flow with My Status, recent updates, full-screen viewer, previous/next navigation, timed text/photo advance, video advance, delete-own-status, and robust realtime/focus refresh.
+- Added a real Supabase migration for the stories table, RLS, story-media storage policies, and realtime publication. This fixes deployments where Stories existed only in FIX_CURRENT_DATABASE.sql but not in migrations.
+- Voice recording now chooses an iOS/Safari-compatible audio/mp4 format when available, falls back to WebM/Ogg where supported, and uses a Safari-friendlier MediaRecorder stop flow.
+- Incoming voice/file messages now refresh attachments immediately so the player appears rather than only the text placeholder.
+- Signed media URLs last longer to reduce playback failures while a chat or status viewer is open.
+- Added mobile viewport/touch/input safeguards for iPhone/iPad/Android/PWA layouts, including notch/home-indicator behavior and iOS form zoom prevention.
+- Version bumped to 1.0.1.
+
+Database requirement:
+Apply supabase/migrations/20260810170500_fix_stories_status.sql to the production Supabase project before testing Stories if your deployment process does not automatically run migrations.

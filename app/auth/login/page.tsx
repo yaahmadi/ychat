@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, Phone, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -52,10 +52,6 @@ function friendlyAuthError(value: unknown) {
     return `${message} Check the Supabase Phone provider and Twilio Messaging Service configuration.`;
   }
 
-  if (/invalid login credentials/i.test(message)) {
-    return "The email or password is not correct.";
-  }
-
   return message;
 }
 
@@ -69,29 +65,17 @@ export default function LoginPage() {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
-  const [error, setError] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return new URLSearchParams(window.location.search).get("error");
-  });
+  const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  const authCallbackUrl = useMemo(
-    () => `${getRedirectBase()}/auth/callback`,
-    [],
-  );
-
   useEffect(() => {
-    const supabase = createClient();
-    let mounted = true;
-    void supabase.auth.getSession().then(({ data }) => {
-      if (mounted && data.session) router.replace("/chat");
-    });
-    return () => {
-      mounted = false;
-    };
-  }, [router]);
+    const searchError = new URLSearchParams(window.location.search).get("error");
+    if (searchError) {
+      setError(searchError);
+    }
+  }, []);
 
   function normalizePhone(value: string) {
     return value.replace(/[\s()-]/g, "");
@@ -129,7 +113,7 @@ export default function LoginPage() {
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: authCallbackUrl,
+          emailRedirectTo: `${getRedirectBase()}/auth/callback`,
           data: {
             display_name: displayName.trim() || email.trim().split("@")[0],
           },
@@ -174,28 +158,37 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
-      const phoneProfileData =
-        displayName.trim() || mode === "signup"
-          ? { display_name: displayName.trim() || normalized }
-          : undefined;
 
       const { error: otpError } = await supabase.auth.signInWithOtp({
         phone: normalized,
         options: {
-          shouldCreateUser: true,
-          data: phoneProfileData,
+          shouldCreateUser: mode === "signup",
+          data:
+            mode === "signup"
+              ? { display_name: displayName.trim() || normalized }
+              : undefined,
         },
       });
 
       if (otpError) throw otpError;
 
-      setPhone(normalized);
       setOtpSent(true);
       setMessage("Verification code sent by SMS.");
     } catch (err) {
       const text = friendlyAuthError(err);
 
-      setError(text);
+      if (
+        /user not found|signups? not allowed/i.test(
+          err instanceof Error ? err.message : "",
+        ) &&
+        mode === "signin"
+      ) {
+        setError(
+          "No phone account exists for this number. Choose Create account first.",
+        );
+      } else {
+        setError(text);
+      }
     } finally {
       setLoading(false);
     }
@@ -241,7 +234,7 @@ export default function LoginPage() {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: authCallbackUrl,
+          redirectTo: `${getRedirectBase()}/auth/callback?next=/chat`,
           queryParams: {
             prompt: "select_account",
           },
@@ -504,7 +497,9 @@ export default function LoginPage() {
               >
                 {loading
                   ? "Sending code..."
-                  : "Send SMS code"}
+                  : mode === "signin"
+                    ? "Send login code"
+                    : "Send signup code"}
               </button>
             )}
 

@@ -398,7 +398,7 @@ export async function uploadVoiceMessage(conversationId: string, blob: Blob, dur
   const supabase = createClient();
   const userId = await currentUserId();
   const mimeType = blob.type || "audio/webm";
-  const extension = mimeType.includes("mp4") || mimeType.includes("m4a") ? "m4a" : mimeType.includes("ogg") ? "ogg" : "webm";
+  const extension = mimeType.includes("mp4") || mimeType.includes("m4a") || mimeType.includes("aac") ? "m4a" : mimeType.includes("ogg") ? "ogg" : "webm";
   const fileName = `voice-${Date.now()}.${extension}`;
   const path = `${userId}/${conversationId}/${crypto.randomUUID()}-${fileName}`;
 
@@ -421,7 +421,7 @@ export async function uploadVoiceMessage(conversationId: string, blob: Blob, dur
 
 export async function getAttachmentDownloadUrl(filePath: string) {
   const supabase = createClient();
-  const { data, error } = await supabase.storage.from("chat-attachments").createSignedUrl(filePath, 60 * 10);
+  const { data, error } = await supabase.storage.from("chat-attachments").createSignedUrl(filePath, 60 * 60);
   if (error) throw error;
   return data.signedUrl;
 }
@@ -509,7 +509,7 @@ export async function uploadPhotoStory(file: File) {
 
 export async function getStoryMediaUrl(filePath: string) {
   const supabase = createClient();
-  const { data, error } = await supabase.storage.from("story-media").createSignedUrl(filePath, 60 * 10);
+  const { data, error } = await supabase.storage.from("story-media").createSignedUrl(filePath, 60 * 60);
   if (error) throw error;
   return data.signedUrl;
 }
