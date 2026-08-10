@@ -540,10 +540,13 @@ export async function deleteStory(storyId: string) {
   if (story?.media_path) await supabase.storage.from("story-media").remove([story.media_path]);
 }
 
+let storySubscriptionSequence = 0;
+
 export function subscribeToStories(callback: (payload: unknown) => void) {
   const supabase = createClient();
+  storySubscriptionSequence += 1;
   return supabase
-    .channel("stories:all")
+    .channel(`stories:all:${storySubscriptionSequence}`)
     .on("postgres_changes", { event: "*", schema: "public", table: "stories" }, callback)
     .subscribe();
 }
