@@ -12,26 +12,22 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     const supabase = createClient();
     let mounted = true;
 
-    void supabase.auth.getSession().then(async ({ data, error }) => {
+    void supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
       if (data.session) {
         setLoading(false);
         return;
       }
-
-      const refreshed = error ? { data: { session: null } } : await supabase.auth.refreshSession().catch(() => ({ data: { session: null } }));
-      if (!mounted) return;
-      if (!refreshed.data.session) {
-        router.replace("/auth/login");
-      } else {
-        setLoading(false);
-      }
+      router.replace("/auth/login");
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (!mounted) return;
-      if (!session && event === "SIGNED_OUT") router.replace("/auth/login");
-      else setLoading(false);
+      if (session) {
+        setLoading(false);
+        return;
+      }
+      if (event === "SIGNED_OUT") router.replace("/auth/login");
     });
 
     return () => {
