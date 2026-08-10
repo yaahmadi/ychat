@@ -366,7 +366,10 @@ async function createAttachmentMessage(input: {
     })
     .select("*")
     .single();
-  if (attachmentError) throw attachmentError;
+  if (attachmentError) {
+    await supabase.from("messages").delete().eq("id", message.id).eq("sender_id", userId);
+    throw attachmentError;
+  }
 
   return { message: message as MessageRow, attachment: attachment as AttachmentRow };
 }
@@ -383,15 +386,20 @@ export async function uploadChatFile(conversationId: string, file: File) {
   });
   if (uploadError) throw uploadError;
 
-  return createAttachmentMessage({
-    conversationId,
-    fileName: file.name,
-    filePath: path,
-    mimeType: file.type || null,
-    fileSize: file.size,
-    messageType: "file",
-    body: file.name,
-  });
+  try {
+    return await createAttachmentMessage({
+      conversationId,
+      fileName: file.name,
+      filePath: path,
+      mimeType: file.type || null,
+      fileSize: file.size,
+      messageType: "file",
+      body: file.name,
+    });
+  } catch (error) {
+    await supabase.storage.from("chat-attachments").remove([path]);
+    throw error;
+  }
 }
 
 export async function uploadVoiceMessage(conversationId: string, blob: Blob, durationMs: number) {
@@ -408,15 +416,20 @@ export async function uploadVoiceMessage(conversationId: string, blob: Blob, dur
   });
   if (uploadError) throw uploadError;
 
-  return createAttachmentMessage({
-    conversationId,
-    fileName,
-    filePath: path,
-    mimeType,
-    fileSize: blob.size,
-    messageType: "voice",
-    body: `Voice message • ${Math.max(1, Math.round(durationMs / 1000))}s`,
-  });
+  try {
+    return await createAttachmentMessage({
+      conversationId,
+      fileName,
+      filePath: path,
+      mimeType,
+      fileSize: blob.size,
+      messageType: "voice",
+      body: `Voice message • ${Math.max(1, Math.round(durationMs / 1000))}s`,
+    });
+  } catch (error) {
+    await supabase.storage.from("chat-attachments").remove([path]);
+    throw error;
+  }
 }
 
 export async function getAttachmentDownloadUrl(filePath: string) {

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Image from "next/image";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, Phone, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -65,17 +65,13 @@ export default function LoginPage() {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("error");
+  });
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-
-  useEffect(() => {
-    const searchError = new URLSearchParams(window.location.search).get("error");
-    if (searchError) {
-      setError(searchError);
-    }
-  }, []);
 
   function normalizePhone(value: string) {
     return value.replace(/[\s()-]/g, "");
