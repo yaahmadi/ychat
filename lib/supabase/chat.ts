@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/client";
+﻿import { createClient } from "@/lib/supabase/client";
 import type {
   AttachmentRow,
   CallLogRow,
@@ -424,7 +424,7 @@ export async function uploadVoiceMessage(conversationId: string, blob: Blob, dur
       mimeType,
       fileSize: blob.size,
       messageType: "voice",
-      body: `Voice message • ${Math.max(1, Math.round(durationMs / 1000))}s`,
+      body: `Voice message â€¢ ${Math.max(1, Math.round(durationMs / 1000))}s`,
     });
   } catch (error) {
     await supabase.storage.from("chat-attachments").remove([path]);
@@ -543,6 +543,7 @@ export async function deleteStory(storyId: string) {
 let storySubscriptionSequence = 0;
 
 export function subscribeToStories(callback: (payload: unknown) => void) {
+  storySubscriptionSequence += 1;
   const supabase = createClient();
   storySubscriptionSequence += 1;
   return supabase
@@ -631,3 +632,5 @@ export async function uploadStoryMedia(file: File) {
   }
   return data as StoryRow;
 }
+
+
