@@ -551,18 +551,26 @@ export function WorkspaceShell() {
   }, [userId]);
 
   useEffect(() => {
+    if (!userId) return;
     let disposed = false;
     async function loadStories() {
-      const { data } = await getStories();
-      if (!disposed) setStories((data ?? []) as StoryRow[]);
+      const { data, error: storiesError } = await getStories();
+      if (disposed) return;
+      if (storiesError) {
+        setError(storiesError.message);
+        return;
+      }
+      setStories((data ?? []) as StoryRow[]);
     }
     void loadStories();
     const channel = subscribeToStories(() => void loadStories());
+    const expiryTimer = window.setInterval(() => void loadStories(), 60_000);
     return () => {
       disposed = true;
+      window.clearInterval(expiryTimer);
       void channel.unsubscribe();
     };
-  }, []);
+  }, [userId]);
 
   const currentProfile = useMemo(() => profiles.find((profile) => profile.id === userId) ?? null, [profiles, userId]);
 

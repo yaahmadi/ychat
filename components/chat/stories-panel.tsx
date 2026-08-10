@@ -26,7 +26,7 @@ function timeLeft(expiresAt: string) {
   return hours > 0 ? `${hours}h` : `${minutes}m`;
 }
 
-function StoryMedia({ story, className = "" }: { story: StoryRow; className?: string }) {
+function StoryMedia({ story, className = "", onEnded }: { story: StoryRow; className?: string; onEnded?: () => void }) {
   const [url, setUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -48,7 +48,7 @@ function StoryMedia({ story, className = "" }: { story: StoryRow; className?: st
   if (failed) return <div className={`flex items-center justify-center bg-white/5 text-xs text-white/60 ${className}`}>Media unavailable</div>;
   if (!url) return <div className={`animate-pulse bg-white/5 ${className}`} />;
   if (story.story_type === "video") {
-    return <video className={className} src={url} controls playsInline preload="metadata" />;
+    return <video className={className} src={url} controls playsInline preload="metadata" onEnded={onEnded} />;
   }
   return <div className={`bg-cover bg-center ${className}`} style={{ backgroundImage: `url(${url})` }} />;
 }
@@ -144,6 +144,28 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
   }
 
   const viewerProfile = viewerStory ? profiles.find((profile) => profile.id === viewerStory.user_id) : null;
+  const viewerStories = useMemo(
+    () => viewerStory ? (grouped.find((group) => group.profileId === viewerStory.user_id)?.items ?? []) : [],
+    [grouped, viewerStory],
+  );
+  const viewerIndex = viewerStory ? viewerStories.findIndex((story) => story.id === viewerStory.id) : -1;
+
+  const showAdjacentStory = useCallback((direction: -1 | 1) => {
+    if (!viewerStory || viewerIndex < 0) return;
+    const next = viewerStories[viewerIndex + direction];
+    if (next) {
+      setComments([]);
+      setCommentText("");
+      setViewerStory(next);
+    }
+    else if (direction === 1) closeViewer();
+  }, [viewerIndex, viewerStories, viewerStory]);
+
+  useEffect(() => {
+    if (!viewerStory || viewerStory.story_type === "video") return;
+    const timer = window.setTimeout(() => showAdjacentStory(1), 7_000);
+    return () => window.clearTimeout(timer);
+  }, [showAdjacentStory, viewerStory]);
 
   useEffect(() => {
     if (!viewerStory) return;
@@ -258,8 +280,13 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
         <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/95 p-3 sm:p-6">
           <div className="relative flex h-[min(90vh,820px)] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-gradient-to-br from-[#0b2f49] via-[#0a4b61] to-[#075e72] shadow-2xl">
             <div className="relative min-h-0 flex-1">
-            {viewerStory.story_type === "text" ? <div className="flex h-full w-full items-center justify-center p-10 text-center text-3xl font-semibold leading-[1.35] text-white">{viewerStory.body}</div> : <StoryMedia key={viewerStory.id} story={viewerStory} className="h-full w-full object-contain" />}
-            <div className="absolute inset-x-0 top-0 flex items-center gap-3 bg-gradient-to-b from-black/75 to-transparent p-4">
+            <div className="absolute inset-x-3 top-2 z-20 flex gap-1" aria-label={`Story ${viewerIndex + 1} of ${viewerStories.length}`}>
+              {viewerStories.map((story, index) => <span key={story.id} className={`h-1 flex-1 rounded-full ${index <= viewerIndex ? "bg-white" : "bg-white/30"}`} />)}
+            </div>
+            {viewerStory.story_type === "text" ? <div className="flex h-full w-full items-center justify-center p-10 text-center text-3xl font-semibold leading-[1.35] text-white">{viewerStory.body}</div> : <StoryMedia key={viewerStory.id} story={viewerStory} className="h-full w-full object-contain" onEnded={() => showAdjacentStory(1)} />}
+            <button type="button" aria-label="Previous story" onClick={() => showAdjacentStory(-1)} disabled={viewerIndex <= 0} className="absolute bottom-0 left-0 top-16 z-10 w-1/3 disabled:pointer-events-none" />
+            <button type="button" aria-label="Next story" onClick={() => showAdjacentStory(1)} className="absolute bottom-0 right-0 top-16 z-10 w-1/3" />
+            <div className="absolute inset-x-0 top-0 z-30 mt-2 flex items-center gap-3 bg-gradient-to-b from-black/75 to-transparent p-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-sm font-semibold text-white">{initials(viewerProfile?.display_name)}</div>
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-white">{viewerProfile?.display_name || "User"}</p><p className="text-[11px] text-white/60">expires in {timeLeft(viewerStory.expires_at)}</p></div>
               {viewerStory.user_id === userId && <button type="button" onClick={() => void removeStory(viewerStory.id)} className="rounded-full bg-black/25 p-2 text-white/80 hover:bg-rose-500/40"><Trash2 className="h-4 w-4" /></button>}
