@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-const PWA_CACHE_VERSION = "ychat-v1.0.9";
+const PWA_CACHE_VERSION = "ychat-v1.0.10";
 
 declare global {
   interface Window {
@@ -12,6 +12,20 @@ declare global {
 
 export function PwaRegister() {
   useEffect(() => {
+    if (process.env.NODE_ENV !== "production") {
+      if ("serviceWorker" in navigator) {
+        void navigator.serviceWorker.getRegistrations().then((registrations) =>
+          Promise.all(registrations.map((registration) => registration.unregister())),
+        );
+      }
+      if ("caches" in window) {
+        void caches.keys().then((keys) =>
+          Promise.all(keys.filter((key) => key.startsWith("ychat-")).map((key) => caches.delete(key))),
+        );
+      }
+      return;
+    }
+
     if ("serviceWorker" in navigator) {
       void navigator.serviceWorker.register("/sw.js").then((registration) => {
         void registration.update();
