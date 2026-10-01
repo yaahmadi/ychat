@@ -22,6 +22,7 @@ import {
   LogOut,
   MessageCircle,
   MessageSquare,
+  MessageSquareReply,
   Mic,
   MoreVertical,
   Phone,
@@ -271,6 +272,7 @@ export function WorkspaceShell() {
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [messageReactions, setMessageReactions] = useState<MessageReactionRow[]>([]);
   const [reactionPickerMessageId, setReactionPickerMessageId] = useState<string | null>(null);
+  const [replyToMessageId, setReplyToMessageId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
   const [stories, setStories] = useState<StoryRow[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -835,9 +837,19 @@ export function WorkspaceShell() {
     setSending(true);
     setError(null);
     try {
-      let { data, error: sendError } = await sendMessage({ conversationId: activeConversationId, body, messageType });
+      let { data, error: sendError } = await sendMessage({
+        conversationId: activeConversationId,
+        body,
+        messageType,
+        replyToId: replyToMessageId,
+      });
       if (sendError && messageType === "sticker") {
-        const retry = await sendMessage({ conversationId: activeConversationId, body, messageType: "text" });
+        const retry = await sendMessage({
+          conversationId: activeConversationId,
+          body,
+          messageType: "text",
+          replyToId: replyToMessageId,
+        });
         data = retry.data;
         sendError = retry.error;
       }
@@ -847,6 +859,7 @@ export function WorkspaceShell() {
         setMessages((current) => current.some((message) => message.id === sent.id) ? current : [...current, sent]);
       }
       if (!overrideBody) setDraft("");
+      setReplyToMessageId(null);
       setStickerOpen(false);
       setPlusOpen(false);
       await refreshConversations(activeConversationId);
@@ -1052,10 +1065,11 @@ export function WorkspaceShell() {
 
         if (!conversationId || blob.size === 0) return;
         setUploading(true);
-        void uploadVoiceMessage(conversationId, blob, duration)
+        void uploadVoiceMessage(conversationId, blob, duration, replyToMessageId)
           .then((result) => {
             setMessages((current) => current.some((message) => message.id === result.message.id) ? current : [...current, result.message]);
             setAttachments((current) => [result.attachment, ...current]);
+            setReplyToMessageId(null);
             return refreshConversations(conversationId);
           })
           .catch((err) => setError(err instanceof Error ? err.message : "Unable to send voice message."))
@@ -1406,13 +1420,35 @@ export function WorkspaceShell() {
                           const reactions = messageReactions.filter((reaction) => reaction.message_id === message.id);
                           const reactionByEmoji = new Map<string, number>();
                           reactions.forEach((reaction) => reactionByEmoji.set(reaction.reaction, (reactionByEmoji.get(reaction.reaction) ?? 0) + 1));
+                          const quoted = message.reply_to_id ? messages.find((item) => item.id === message.reply_to_id) : null;
                           return (
-                            <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                            <div key={message.id} id={`ychat-message-${message.id}`} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                               <div className={`relative max-w-[88%] rounded-2xl px-3 py-2 shadow-sm sm:max-w-[72%] ${mine ? "rounded-br-md bg-[#075e72] text-white" : "rounded-bl-md border border-white/[0.055] bg-[#102438] text-slate-100"}`}>
                                 {!mine && activeConversation.type === "group" && <p className="mb-1 text-[11px] font-semibold text-cyan-300">{getSenderName(message.sender_id)}</p>}
+                                {quoted && (
+                                  <button
+                                    type="button"
+                                    onClick={() => document.getElementById(`ychat-message-${quoted.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                                    className="mb-2 w-full rounded-xl border-l-2 border-cyan-300/60 bg-black/15 px-2.5 py-1.5 text-left"
+                                  >
+                                    <p className="text-[10px] font-semibold text-cyan-200">{quoted.sender_id === userId ? "You" : getSenderName(quoted.sender_id)}</p>
+                                    <p className="truncate text-[11px] text-white/60">{quoted.message_type === "voice" ? "🎙️ Voice message" : quoted.message_type === "file" ? "📎 File" : quoted.body}</p>
+                                  </button>
+                                )}
                                 {message.message_type === "sticker" || STICKERS.includes(message.body) ? <div className="px-2 py-1 text-5xl leading-none">{message.body}</div> : message.message_type === "voice" && attachment ? <AttachmentPlayer attachment={attachment} /> : message.message_type === "file" && attachment ? <AttachmentPlayer attachment={attachment} compact /> : <p className="whitespace-pre-wrap break-words text-[14px] leading-5">{message.body}</p>}
                                 <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-white/55"><span>{formatTime(message.created_at)}</span>{mine && <span className="text-cyan-200">✓✓</span>}</div>
                                 {reactions.length > 0 && <div className="mt-1 flex flex-wrap justify-end gap-1">{Array.from(reactionByEmoji.entries()).map(([emoji, count]) => <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-full border border-white/15 bg-black/20 px-2 py-0.5 text-xs hover:bg-white/10">{emoji}{count > 1 ? ` ${count}` : ""}</button>)}</div>}
+                                <div className="mt-1 flex justify-end">
+                                  <button
+                                    type="button"
+                                    aria-label="Reply to message"
+                                    title="Reply"
+                                    onClick={() => setReplyToMessageId((current) => current === message.id ? null : message.id)}
+                                    className="rounded-full p-1 text-white/45 hover:bg-white/10 hover:text-white"
+                                  >
+                                    <MessageSquareReply className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
                                 <div className="relative mt-1 flex justify-end">
                                   <button type="button" aria-label="React to message" onClick={() => setReactionPickerMessageId((current) => current === message.id ? null : message.id)} className="rounded-full p-1 text-white/45 hover:bg-white/10 hover:text-white"><Smile className="h-3.5 w-3.5" /></button>
                                   {reactionPickerMessageId === message.id && <div className={`absolute bottom-7 z-40 flex max-w-[260px] flex-wrap gap-1 rounded-2xl border border-white/10 bg-[#071827] p-2 shadow-2xl ${mine ? "right-0" : "left-0"}`}>{["❤️","👍","😂","😮","😢","😡","👏","🔥","🎉","🙏","💯","🚀"].map((emoji) => <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-lg p-1.5 text-lg hover:bg-white/10">{emoji}</button>)}</div>}
@@ -1426,6 +1462,20 @@ export function WorkspaceShell() {
                     </div>
 
                     <div className="relative shrink-0 border-t border-white/10 bg-[#091a2b] px-2 py-2 sm:px-3">
+                      {replyToMessageId && (() => {
+                        const target = messages.find((item) => item.id === replyToMessageId);
+                        if (!target) return null;
+                        return (
+                          <div className="mb-2 flex items-center gap-2 rounded-2xl border border-cyan-400/15 bg-cyan-500/5 px-3 py-2">
+                            <MessageSquareReply className="h-4 w-4 shrink-0 text-cyan-300" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[10px] font-semibold text-cyan-200">Replying to {target.sender_id === userId ? "yourself" : getSenderName(target.sender_id)}</p>
+                              <p className="truncate text-xs text-slate-400">{target.message_type === "voice" ? "🎙️ Voice message" : target.message_type === "file" ? "📎 File" : target.body}</p>
+                            </div>
+                            <button type="button" onClick={() => setReplyToMessageId(null)} className="rounded-full p-1 text-slate-400 hover:bg-white/10"><X className="h-4 w-4" /></button>
+                          </div>
+                        );
+                      })()}
                       {plusOpen && (
                         <div className="absolute bottom-[72px] left-3 z-30 w-[280px] max-w-[calc(100vw-24px)] rounded-2xl border border-white/10 bg-[#0b1c2f] p-2 shadow-2xl">
                           <button type="button" onClick={() => { fileInputRef.current?.click(); setPlusOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-200 hover:bg-white/5"><Plus className="h-5 w-5 text-cyan-300" /> Photo, video or file</button>
