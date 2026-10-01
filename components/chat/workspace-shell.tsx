@@ -55,10 +55,13 @@ import {
   getConversations,
   getStories,
   getMessages,
+  getMessageReactions,
   hideConversations,
   requestNotificationPermission,
   sendMessage,
   startDirectConversation,
+  subscribeToMessageReactions,
+  toggleMessageReaction,
   subscribeToMessages,
   subscribeToStories,
   uploadChatFile,
@@ -72,6 +75,7 @@ import { ActiveCallOverlay, IncomingCallCard } from "@/components/chat/call-over
 import { StoriesPanel } from "@/components/chat/stories-panel";
 import type {
   AttachmentRow,
+  MessageReactionRow,
   ConversationRow,
   MessageRow,
   ProfileRow,
@@ -265,6 +269,8 @@ export function WorkspaceShell() {
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [conversations, setConversations] = useState<ConversationRow[]>([]);
   const [messages, setMessages] = useState<MessageRow[]>([]);
+  const [messageReactions, setMessageReactions] = useState<MessageReactionRow[]>([]);
+  const [reactionPickerMessageId, setReactionPickerMessageId] = useState<string | null>(null);
   const [attachments, setAttachments] = useState<AttachmentRow[]>([]);
   const [stories, setStories] = useState<StoryRow[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
@@ -475,6 +481,52 @@ export function WorkspaceShell() {
       void subscription.unsubscribe();
     };
   }, [activeConversationId, profiles, userId]);
+
+  useEffect(() => {
+    if (!activeConversationId || messages.length === 0) {
+      setMessageReactions([]);
+      return;
+    }
+    let disposed = false;
+    const messageIds = messages.map((message) => message.id);
+
+    async function loadReactions() {
+      const result = await getMessageReactions(messageIds);
+      if (!disposed) {
+        if (result.error) setError(result.error.message);
+        setMessageReactions(result.data ?? []);
+      }
+    }
+
+    void loadReactions();
+    const channel = subscribeToMessageReactions((payload) => {
+      const event = payload as { eventType?: string; new?: MessageReactionRow; old?: MessageReactionRow };
+      const row = event.new ?? event.old;
+      if (!row || !messageIds.includes(row.message_id)) return;
+      if (event.eventType === "DELETE") {
+        setMessageReactions((current) => current.filter((item) => !(item.message_id === row.message_id && item.user_id === row.user_id)));
+      } else {
+        setMessageReactions((current) => [
+          ...current.filter((item) => !(item.message_id === row.message_id && item.user_id === row.user_id)),
+          row,
+        ]);
+      }
+    });
+
+    return () => {
+      disposed = true;
+      void channel.unsubscribe();
+    };
+  }, [activeConversationId, messages]);
+
+  async function reactToMessage(messageId: string, reaction: string) {
+    try {
+      await toggleMessageReaction(messageId, reaction);
+      setReactionPickerMessageId(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to react to message.");
+    }
+  }
 
   useEffect(() => {
     const scroller = messagesScrollRef.current;
@@ -1351,12 +1403,20 @@ export function WorkspaceShell() {
                         {messages.map((message) => {
                           const mine = message.sender_id === userId;
                           const attachment = attachmentByMessage.get(message.id);
+                          const reactions = messageReactions.filter((reaction) => reaction.message_id === message.id);
+                          const reactionByEmoji = new Map<string, number>();
+                          reactions.forEach((reaction) => reactionByEmoji.set(reaction.reaction, (reactionByEmoji.get(reaction.reaction) ?? 0) + 1));
                           return (
                             <div key={message.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
                               <div className={`relative max-w-[88%] rounded-2xl px-3 py-2 shadow-sm sm:max-w-[72%] ${mine ? "rounded-br-md bg-[#075e72] text-white" : "rounded-bl-md border border-white/[0.055] bg-[#102438] text-slate-100"}`}>
                                 {!mine && activeConversation.type === "group" && <p className="mb-1 text-[11px] font-semibold text-cyan-300">{getSenderName(message.sender_id)}</p>}
                                 {message.message_type === "sticker" || STICKERS.includes(message.body) ? <div className="px-2 py-1 text-5xl leading-none">{message.body}</div> : message.message_type === "voice" && attachment ? <AttachmentPlayer attachment={attachment} /> : message.message_type === "file" && attachment ? <AttachmentPlayer attachment={attachment} compact /> : <p className="whitespace-pre-wrap break-words text-[14px] leading-5">{message.body}</p>}
                                 <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-white/55"><span>{formatTime(message.created_at)}</span>{mine && <span className="text-cyan-200">✓✓</span>}</div>
+                                {reactions.length > 0 && <div className="mt-1 flex flex-wrap justify-end gap-1">{Array.from(reactionByEmoji.entries()).map(([emoji, count]) => <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-full border border-white/15 bg-black/20 px-2 py-0.5 text-xs hover:bg-white/10">{emoji}{count > 1 ? ` ${count}` : ""}</button>)}</div>}
+                                <div className="relative mt-1 flex justify-end">
+                                  <button type="button" aria-label="React to message" onClick={() => setReactionPickerMessageId((current) => current === message.id ? null : message.id)} className="rounded-full p-1 text-white/45 hover:bg-white/10 hover:text-white"><Smile className="h-3.5 w-3.5" /></button>
+                                  {reactionPickerMessageId === message.id && <div className={`absolute bottom-7 z-40 flex max-w-[260px] flex-wrap gap-1 rounded-2xl border border-white/10 bg-[#071827] p-2 shadow-2xl ${mine ? "right-0" : "left-0"}`}>{["❤️","👍","😂","😮","😢","😡","👏","🔥","🎉","🙏","💯","🚀"].map((emoji) => <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-lg p-1.5 text-lg hover:bg-white/10">{emoji}</button>)}</div>}
+                                </div>
                               </div>
                             </div>
                           );
