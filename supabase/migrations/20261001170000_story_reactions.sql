@@ -13,8 +13,11 @@ alter table public.story_reactions enable row level security;
 
 drop policy if exists story_reactions_select_relevant on public.story_reactions;
 create policy story_reactions_select_relevant on public.story_reactions for select using (
-  user_id = auth.uid() or exists (
-    select 1 from public.stories s where s.id = story_reactions.story_id and s.user_id = auth.uid()
+  user_id = auth.uid()
+  or exists (
+    select 1 from public.stories s
+    where s.id = story_reactions.story_id
+      and (s.user_id = auth.uid() or s.expires_at > now())
   )
 );
 
@@ -33,3 +36,8 @@ drop policy if exists story_reactions_delete_own on public.story_reactions;
 create policy story_reactions_delete_own on public.story_reactions for delete using (user_id = auth.uid());
 
 alter publication supabase_realtime add table public.story_reactions;
+
+
+-- Existing story-view upserts need an UPDATE policy for repeat views.
+drop policy if exists story_views_update_own on public.story_views;
+create policy story_views_update_own on public.story_views for update using (user_id = auth.uid()) with check (user_id = auth.uid());
