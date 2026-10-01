@@ -8,8 +8,10 @@ import {
   createStoryComment,
   deleteStory,
   getStoryComments,
+  getStoryViews,
   getStories,
   getStoryMediaUrl,
+  markStoryViewed,
   subscribeToStories,
   uploadStoryMedia,
 } from "@/lib/supabase/chat";
@@ -63,6 +65,8 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
   const [viewerStory, setViewerStory] = useState<StoryRow | null>(null);
   const [comments, setComments] = useState<StoryCommentRow[]>([]);
   const [commentText, setCommentText] = useState("");
+  const [storyViewers, setStoryViewers] = useState<ProfileRow[]>([]);
+  const [viewCount, setViewCount] = useState(0);
 
   const refresh = useCallback(async () => {
     const { data, error: storyError } = await getStories();
@@ -293,6 +297,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
               <button type="button" onClick={closeViewer} className="rounded-full bg-black/25 p-2 text-white/80"><X className="h-4 w-4" /></button>
             </div>
             </div>
+            {viewerStory.user_id === userId && <div className="border-t border-white/10 bg-black/20 px-3 py-2"><p className="text-xs font-semibold text-white/80">{viewCount} {viewCount === 1 ? "view" : "views"}</p><div className="mt-1 flex flex-wrap gap-2">{storyViewers.slice(0, 12).map((profile) => <span key={profile.id} className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-white/75">{profile.display_name}</span>)}</div></div>}
             <div className="border-t border-white/10 bg-black/30 p-3">
               <div className="max-h-28 space-y-2 overflow-y-auto ychat-scrollbar">
                 {comments.map((comment) => {
