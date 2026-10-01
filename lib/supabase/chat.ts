@@ -388,6 +388,50 @@ export async function getStoryViews(storyId: string) {
   return { data: (data ?? []) as StoryViewRow[], error };
 }
 
+export async function getStoryReactions(storyId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("story_reactions")
+    .select("*")
+    .eq("story_id", storyId)
+    .order("created_at", { ascending: true });
+  return { data: (data ?? []) as StoryReactionRow[], error };
+}
+
+export async function toggleStoryReaction(storyId: string, reaction: string) {
+  const supabase = createClient();
+  const userId = await currentUserId();
+  const clean = reaction.trim();
+  if (!clean) return null;
+  const { data: existing, error: readError } = await supabase
+    .from("story_reactions")
+    .select("story_id,user_id,reaction")
+    .eq("story_id", storyId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (readError) throw readError;
+  if (existing?.reaction === clean) {
+    const { error } = await supabase.from("story_reactions").delete().eq("story_id", storyId).eq("user_id", userId);
+    if (error) throw error;
+    return null;
+  }
+  const { data, error } = await supabase
+    .from("story_reactions")
+    .upsert({ story_id: storyId, user_id: userId, reaction: clean }, { onConflict: "story_id,user_id" })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as StoryReactionRow;
+}
+
+export function subscribeToStoryReactions(callback: (payload: unknown) => void) {
+  const supabase = createClient();
+  return supabase
+    .channel(`story-reactions:${crypto.randomUUID()}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "story_reactions" }, callback)
+    .subscribe();
+}
+
 export async function getAttachments() {
   const supabase = createClient();
   return supabase.from("attachments").select("*").order("created_at", { ascending: false });
@@ -494,6 +538,7 @@ export async function uploadVoiceMessage(
   conversationId: string,
   blob: Blob,
   durationMs: number,
+  replyToId?: string | null,
 ) {
   const extension = blob.type.includes("mp4")
     ? "m4a"
@@ -513,6 +558,7 @@ export async function uploadVoiceMessage(
   );
   formData.append("conversationId", conversationId);
   formData.append("durationMs", String(durationMs));
+  if (replyToId) formData.append("replyToId", replyToId);
 
   const response = await fetch("/api/voice", {
     method: "POST",
