@@ -53,6 +53,13 @@ export type StoryViewRow = {
   viewed_at: string;
 };
 
+export type StoryReactionRow = {
+  story_id: string;
+  user_id: string;
+  reaction: string;
+  created_at: string;
+};
+
 export type AttachmentRow = {
   id: string;
   message_id: string;
