@@ -6,6 +6,7 @@ import type {
   MessageRow,
   MessageReactionRow,
   StoryViewRow,
+  StoryReactionRow,
   ProfileRow,
   StoryCommentRow,
   StoryRow,
