@@ -83,6 +83,10 @@ export async function POST(request: Request) {
     const durationMs = Number(
       formData.get("durationMs") || 0,
     );
+    const replyToIdValue = formData.get("replyToId");
+    const replyToId = typeof replyToIdValue === "string" && replyToIdValue.trim()
+      ? replyToIdValue.trim()
+      : null;
 
     if (!(audio instanceof File)) {
       return NextResponse.json(
@@ -177,6 +181,7 @@ export async function POST(request: Request) {
           sender_id: user.id,
           body,
           message_type: "voice",
+          reply_to_id: replyToId,
         })
         .select("*")
         .single();
@@ -192,6 +197,7 @@ export async function POST(request: Request) {
             sender_id: user.id,
             body,
             message_type: "file",
+            reply_to_id: replyToId,
           })
           .select("*")
           .single();
