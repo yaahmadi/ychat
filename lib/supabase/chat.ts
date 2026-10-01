@@ -4,6 +4,8 @@ import type {
   CallLogRow,
   ConversationUserStateRow,
   MessageRow,
+  MessageReactionRow,
+  StoryViewRow,
   ProfileRow,
   StoryCommentRow,
   StoryRow,
@@ -300,6 +302,92 @@ export async function createGroupConversation(title: string, memberIds: string[]
   return data;
 }
 
+export async function getMessageReactions(messageIds: string[]) {
+  if (messageIds.length === 0) return { data: [] as MessageReactionRow[], error: null };
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("message_reactions")
+    .select("*")
+    .in("message_id", messageIds)
+    .order("created_at", { ascending: true });
+  return { data: (data ?? []) as MessageReactionRow[], error };
+}
+
+export async function toggleMessageReaction(messageId: string, reaction: string) {
+  const supabase = createClient();
+  const userId = await currentUserId();
+  const clean = reaction.trim();
+  if (!clean) return;
+
+  const { data: existing, error: readError } = await supabase
+    .from("message_reactions")
+    .select("message_id,user_id,reaction")
+    .eq("message_id", messageId)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (readError) throw readError;
+
+  if (existing?.reaction === clean) {
+    const { error } = await supabase
+      .from("message_reactions")
+      .delete()
+      .eq("message_id", messageId)
+      .eq("user_id", userId);
+    if (error) throw error;
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("message_reactions")
+    .upsert(
+      { message_id: messageId, user_id: userId, reaction: clean },
+      { onConflict: "message_id,user_id" },
+    )
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as MessageReactionRow;
+}
+
+export function subscribeToMessageReactions(callback: (payload: unknown) => void) {
+  const supabase = createClient();
+  return supabase
+    .channel(`message-reactions:${crypto.randomUUID()}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "message_reactions" },
+      callback,
+    )
+    .subscribe();
+}
+
+export async function markStoryViewed(storyId: string) {
+  const supabase = createClient();
+  const userId = await currentUserId();
+  const { data, error } = await supabase
+    .from("story_views")
+    .upsert(
+      { story_id: storyId, user_id: userId, viewed_at: new Date().toISOString() },
+      { onConflict: "story_id,user_id" },
+    )
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as StoryViewRow;
+}
+
+export async function getStoryViews(storyId: string) {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("story_views")
+    .select("*")
+    .eq("story_id", storyId)
+    .order("viewed_at", { ascending: false });
+  return { data: (data ?? []) as StoryViewRow[], error };
+}
+
 export async function getAttachments() {
   const supabase = createClient();
   return supabase.from("attachments").select("*").order("created_at", { ascending: false });
@@ -402,34 +490,56 @@ export async function uploadChatFile(conversationId: string, file: File) {
   }
 }
 
-export async function uploadVoiceMessage(conversationId: string, blob: Blob, durationMs: number) {
-  const supabase = createClient();
-  const userId = await currentUserId();
-  const mimeType = blob.type || "audio/webm";
-  const extension = mimeType.includes("mp4") || mimeType.includes("m4a") || mimeType.includes("aac") ? "m4a" : mimeType.includes("ogg") ? "ogg" : "webm";
-  const fileName = `voice-${Date.now()}.${extension}`;
-  const path = `${userId}/${conversationId}/${crypto.randomUUID()}-${fileName}`;
+export async function uploadVoiceMessage(
+  conversationId: string,
+  blob: Blob,
+  durationMs: number,
+) {
+  const extension = blob.type.includes("mp4")
+    ? "m4a"
+    : blob.type.includes("ogg")
+      ? "ogg"
+      : "webm";
 
-  const { error: uploadError } = await supabase.storage.from("chat-attachments").upload(path, blob, {
-    upsert: false,
-    contentType: mimeType,
+  const formData = new FormData();
+
+  formData.append(
+    "audio",
+    new File(
+      [blob],
+      `voice-${Date.now()}.${extension}`,
+      { type: blob.type || "audio/webm" },
+    ),
+  );
+  formData.append("conversationId", conversationId);
+  formData.append("durationMs", String(durationMs));
+
+  const response = await fetch("/api/voice", {
+    method: "POST",
+    body: formData,
   });
-  if (uploadError) throw uploadError;
+
+  let result: {
+    error?: string;
+    message?: MessageRow;
+    attachment?: AttachmentRow;
+  };
 
   try {
-    return await createAttachmentMessage({
-      conversationId,
-      fileName,
-      filePath: path,
-      mimeType,
-      fileSize: blob.size,
-      messageType: "voice",
-      body: `Voice message • ${Math.max(1, Math.round(durationMs / 1000))}s`,
-    });
-  } catch (error) {
-    await supabase.storage.from("chat-attachments").remove([path]);
-    throw error;
+    result = await response.json();
+  } catch {
+    throw new Error(`Voice upload failed with HTTP ${response.status}.`);
   }
+
+  if (!response.ok) {
+    throw new Error(result?.error || "Unable to upload voice message.");
+  }
+
+  if (!result.message || !result.attachment) {
+    throw new Error("Voice upload completed but the server did not return the message.");
+  }
+
+  return { message: result.message, attachment: result.attachment };
 }
 
 export async function getAttachmentDownloadUrl(filePath: string) {
