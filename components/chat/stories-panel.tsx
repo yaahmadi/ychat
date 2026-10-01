@@ -9,13 +9,16 @@ import {
   deleteStory,
   getStoryComments,
   getStoryViews,
+  getStoryReactions,
   getStories,
   getStoryMediaUrl,
   markStoryViewed,
+  subscribeToStoryReactions,
   subscribeToStories,
+  toggleStoryReaction,
   uploadStoryMedia,
 } from "@/lib/supabase/chat";
-import type { ProfileRow, StoryCommentRow, StoryRow } from "@/lib/supabase/types";
+import type { ProfileRow, StoryCommentRow, StoryReactionRow, StoryRow } from "@/lib/supabase/types";
 
 function initials(name?: string | null) {
   return (name?.trim()?.slice(0, 1) || "U").toUpperCase();
@@ -67,6 +70,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
   const [commentText, setCommentText] = useState("");
   const [storyViewers, setStoryViewers] = useState<ProfileRow[]>([]);
   const [viewCount, setViewCount] = useState(0);
+  const [storyReactions, setStoryReactions] = useState<StoryReactionRow[]>([]);
 
   const refresh = useCallback(async () => {
     const { data, error: storyError } = await getStories();
@@ -137,6 +141,41 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
     }
   }
 
+  async function openStory(story: StoryRow) {
+    setError(null);
+    setComments([]);
+    setCommentText("");
+    setViewerStory(story);
+
+    try {
+      if (userId && story.user_id !== userId) {
+        await markStoryViewed(story.id);
+      }
+      const [viewsResult, reactionsResult] = await Promise.all([
+        getStoryViews(story.id),
+        getStoryReactions(story.id),
+      ]);
+      setViewCount(viewsResult.data?.length ?? 0);
+      setStoryReactions(reactionsResult.data ?? []);
+      if (viewsResult.error) setError(viewsResult.error.message);
+      if (reactionsResult.error) setError(reactionsResult.error.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load story activity.");
+    }
+  }
+
+  async function reactToStory(reaction: string) {
+    if (!viewerStory || !userId || viewerStory.user_id === userId) return;
+    try {
+      await toggleStoryReaction(viewerStory.id, reaction);
+      const result = await getStoryReactions(viewerStory.id);
+      if (result.error) throw result.error;
+      setStoryReactions(result.data ?? []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to react to story.");
+    }
+  }
+
   async function removeStory(storyId: string) {
     try {
       await deleteStory(storyId);
@@ -160,7 +199,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
     if (next) {
       setComments([]);
       setCommentText("");
-      setViewerStory(next);
+      void openStory(next);
     }
     else if (direction === 1) closeViewer();
   }, [viewerIndex, viewerStories, viewerStory]);
@@ -184,6 +223,26 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
     };
   }, [viewerStory]);
 
+  useEffect(() => {
+    if (!viewerStory) return;
+    const channel = subscribeToStoryReactions((payload) => {
+      const event = payload as { eventType?: string; new?: StoryReactionRow; old?: StoryReactionRow };
+      const row = event.new ?? event.old;
+      if (!row || row.story_id !== viewerStory.id) return;
+      if (event.eventType === "DELETE") {
+        setStoryReactions((current) => current.filter((item) => !(item.story_id === row.story_id && item.user_id === row.user_id)));
+      } else {
+        setStoryReactions((current) => [
+          ...current.filter((item) => !(item.story_id === row.story_id && item.user_id === row.user_id)),
+          row,
+        ]);
+      }
+    });
+    return () => {
+      void channel.unsubscribe();
+    };
+  }, [viewerStory]);
+
   async function sendComment() {
     if (!viewerStory || !commentText.trim()) return;
     try {
@@ -199,6 +258,8 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
     setViewerStory(null);
     setComments([]);
     setCommentText("");
+    setStoryReactions([]);
+    setViewCount(0);
   }
 
   return (
@@ -228,7 +289,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
             const latest = items[0];
             if (!latest) return null;
             return (
-              <button key={profileId} type="button" onClick={() => setViewerStory(latest)} className="flex w-20 shrink-0 flex-col items-center gap-2 text-center">
+              <button key={profileId} type="button" onClick={() => void openStory(latest)} className="flex w-20 shrink-0 flex-col items-center gap-2 text-center">
                 <div className="rounded-full bg-gradient-to-tr from-cyan-400 via-blue-500 to-teal-300 p-[2px]">
                   <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-[#06101d] bg-[#0a1b2d] text-lg font-semibold text-cyan-200">
                     {latest.story_type === "text" ? initials(profile?.display_name) : <StoryMedia key={latest.id} story={latest} className="h-full w-full object-cover" />}
@@ -298,6 +359,33 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
             </div>
             </div>
             {viewerStory.user_id === userId && <div className="border-t border-white/10 bg-black/20 px-3 py-2"><p className="text-xs font-semibold text-white/80">{viewCount} {viewCount === 1 ? "view" : "views"}</p><div className="mt-1 flex flex-wrap gap-2">{storyViewers.slice(0, 12).map((profile) => <span key={profile.id} className="rounded-full bg-white/10 px-2 py-1 text-[11px] text-white/75">{profile.display_name}</span>)}</div></div>}
+            <div className="border-t border-white/10 bg-black/20 px-3 py-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-white/60">{storyReactions.length} {storyReactions.length === 1 ? "reaction" : "reactions"}</span>
+                <div className="ml-auto flex gap-1">
+                  {["❤️","👍","😂","😮","😢","🔥","👏","🎉"].map((emoji) => {
+                    const selected = storyReactions.some((item) => item.user_id === userId && item.reaction === emoji);
+                    return (
+                      <button
+                        key={emoji}
+                        type="button"
+                        disabled={!userId || viewerStory.user_id === userId}
+                        onClick={() => void reactToStory(emoji)}
+                        className={`rounded-full px-1.5 py-1 text-base transition ${selected ? "bg-white/20 ring-1 ring-cyan-300/50" : "hover:bg-white/10"} disabled:opacity-40`}
+                        aria-label={`React with ${emoji}`}
+                      >{emoji}</button>
+                    );
+                  })}
+                </div>
+              </div>
+              {storyReactions.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {Array.from(new Set(storyReactions.map((item) => item.reaction))).map((emoji) => (
+                    <span key={emoji} className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] text-white/75">{emoji} {storyReactions.filter((item) => item.reaction === emoji).length}</span>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="border-t border-white/10 bg-black/30 p-3">
               <div className="max-h-28 space-y-2 overflow-y-auto ychat-scrollbar">
                 {comments.map((comment) => {
