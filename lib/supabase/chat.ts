@@ -276,6 +276,27 @@ export async function sendMessage(input: {
   return retryAfterJwtClockSkew(runInsert, (result) => (result as { error?: unknown }).error);
 }
 
+export async function updateMessage(messageId: string, body: string) {
+  const clean = body.trim();
+  if (!clean) throw new Error("Message cannot be empty.");
+
+  const supabase = createClient();
+  const userId = await currentUserId();
+  const { data, error } = await supabase
+    .from("messages")
+    .update({
+      body: clean,
+      edited_at: new Date().toISOString(),
+    })
+    .eq("id", messageId)
+    .eq("sender_id", userId)
+    .select("*")
+    .single();
+
+  if (error) throw error;
+  return data as MessageRow;
+}
+
 export async function startDirectConversation(otherUserId: string) {
   const operation = async () => {
     const supabase = createClient();
