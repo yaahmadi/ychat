@@ -1529,6 +1529,13 @@ export function WorkspaceShell() {
                     </div>
 
                     <div className="relative shrink-0 border-t border-white/10 bg-[var(--ychat-surface-2)] px-2 py-2 sm:px-3">
+                      {editingMessageId && (
+                        <div className="mx-auto mb-2 flex max-w-5xl items-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-500/5 px-3 py-2">
+                          <div className="h-7 w-1 rounded-full bg-cyan-500" />
+                          <div className="min-w-0 flex-1"><p className="text-[10px] font-semibold uppercase tracking-wider text-cyan-700 dark:text-cyan-300">Editing message</p><p className="truncate text-xs text-slate-500">Update the text and save it.</p></div>
+                          <button type="button" onClick={cancelEditMessage} className="rounded-full p-1.5 text-slate-500 hover:bg-black/5 dark:hover:bg-white/10" aria-label="Cancel editing"><X className="h-4 w-4" /></button>
+                        </div>
+                      )}
                       {replyToMessageId && (() => {
                         const target = messages.find((item) => item.id === replyToMessageId);
                         if (!target) return null;
@@ -1571,13 +1578,13 @@ export function WorkspaceShell() {
                         {recording ? (
                           <div className="flex min-h-[46px] flex-1 items-center gap-3 rounded-3xl border border-rose-500/25 bg-rose-500/10 px-4"><span className="h-2.5 w-2.5 animate-pulse rounded-full bg-rose-400" /><span className="text-sm text-rose-200">Recording {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, "0")}</span><span className="ml-auto text-xs text-slate-500">Tap stop to send</span></div>
                         ) : (
-                          <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void handleSend(); } }} rows={1} placeholder="Message" className="max-h-32 min-h-[46px] flex-1 resize-none rounded-3xl border border-white/10 bg-[var(--ychat-input)] px-4 py-3 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-500/30" />
+                          <textarea data-ychat-message-editor value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void (editingMessageId ? saveEditedMessage() : handleSend()); } }} rows={1} placeholder={editingMessageId ? "Edit message" : "Message"} className="max-h-32 min-h-[46px] flex-1 resize-none rounded-3xl border border-white/10 bg-[var(--ychat-input)] px-4 py-3 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-500/30" />
                         )}
 
                         {recording ? (
                           <button type="button" onClick={stopVoiceRecording} className="mb-0.5 flex h-11 w-11 items-center justify-center rounded-full bg-rose-500 text-white" title="Stop and send voice message"><Square className="h-4 w-4 fill-current" /></button>
                         ) : draft.trim() ? (
-                          <button type="button" onClick={() => void handleSend()} disabled={sending} className="mb-0.5 flex h-11 w-11 items-center justify-center rounded-full bg-cyan-500 text-slate-950 hover:bg-cyan-400 disabled:opacity-40"><Send className="h-5 w-5" /></button>
+                          <button type="button" onClick={() => void (editingMessageId ? saveEditedMessage() : handleSend())} disabled={sending} className="mb-0.5 flex h-11 w-11 items-center justify-center rounded-full bg-cyan-500 text-slate-950 hover:bg-cyan-400 disabled:opacity-40" title={editingMessageId ? "Save edited message" : "Send message"}><Send className="h-5 w-5" /></button>
                         ) : (
                           <button type="button" onClick={() => void startVoiceRecording()} className="mb-0.5 flex h-11 w-11 items-center justify-center rounded-full bg-cyan-500 text-slate-950 hover:bg-cyan-400" title="Record voice message"><Mic className="h-5 w-5" /></button>
                         )}
