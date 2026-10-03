@@ -74,6 +74,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useWebRtcCall, type CallMode } from "@/hooks/use-web-rtc-call";
 import { ActiveCallOverlay, IncomingCallCard } from "@/components/chat/call-overlay";
 import { StoriesPanel } from "@/components/chat/stories-panel";
+import { ThemeSwitcher } from "@/components/theme/theme-switcher";
 import type {
   AttachmentRow,
   MessageReactionRow,
@@ -1589,7 +1590,14 @@ export function WorkspaceShell() {
                   </div>
                   <p className="mt-3 text-xs text-slate-500">Tap your avatar to change your profile picture. Your name and photo update across chats and groups.</p>
                 </div>
-                <SettingRow icon={<Building2 className="h-5 w-5" />} title="Install Ychat" text="Install this PWA on Android, iPhone/iPad or desktop for an app-like experience." action={<button type="button" onClick={() => void installPwa()} className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950">{installReady ? "Install" : "How to install"}</button>} />
+                <div className="rounded-2xl border border-white/10 bg-[#0a1b2d] p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-200"><Sparkles className="h-5 w-5" /></div>
+                    <div className="min-w-0 flex-1"><p className="font-medium">Appearance</p><p className="mt-1 text-sm leading-5 text-slate-500">System follows your iPhone/iPad Light or Dark setting. You can also choose a fixed appearance.</p></div>
+                    <div className="w-full sm:w-[360px]"><ThemeSwitcher /></div>
+                  </div>
+                </div>
+                <SettingRow icon={<Building2 className="h-5 w-5" />} title="Install Ychat" text="Install Ychat on supported browsers. The native iOS/Android app uses the installed application directly." action={<button type="button" onClick={() => void installPwa()} className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950">{installReady ? "Install" : "Install web app"}</button>} />
                 <div className="rounded-2xl border border-white/10 bg-[#0a1b2d] p-5">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-200"><MessageCircle className="h-5 w-5" /></div>
