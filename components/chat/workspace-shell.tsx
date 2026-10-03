@@ -472,13 +472,21 @@ export function WorkspaceShell() {
 
     void loadMessages();
     const subscription = subscribeToMessages(conversationId, (payload) => {
-      const newMessage = (payload as { new?: MessageRow }).new;
-      if (!newMessage) return;
-      setMessages((current) => current.some((message) => message.id === newMessage.id) ? current : [...current, newMessage]);
+      const event = payload as { eventType?: string; new?: MessageRow; old?: MessageRow };
+      const incoming = event.new;
+      if (!incoming) return;
 
-      if (newMessage.sender_id !== userId && "Notification" in window && Notification.permission === "granted" && document.hidden) {
-        const sender = profiles.find((profile) => profile.id === newMessage.sender_id)?.display_name || "New message";
-        new Notification(sender, { body: newMessage.message_type === "text" ? newMessage.body : `Sent a ${newMessage.message_type}`, icon: "/icon-192.png" });
+      if (event.eventType === "UPDATE") {
+        setMessages((current) => current.map((message) => message.id === incoming.id ? incoming : message));
+        return;
+      }
+
+      if (event.eventType !== "INSERT") return;
+      setMessages((current) => current.some((message) => message.id === incoming.id) ? current : [...current, incoming]);
+
+      if (incoming.sender_id !== userId && "Notification" in window && Notification.permission === "granted" && document.hidden) {
+        const sender = profiles.find((profile) => profile.id === incoming.sender_id)?.display_name || "New message";
+        new Notification(sender, { body: incoming.message_type === "text" ? incoming.body : `Sent a ${incoming.message_type}`, icon: "/icon-192.png" });
       }
     });
 
