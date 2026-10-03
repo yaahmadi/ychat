@@ -1456,7 +1456,21 @@ export function WorkspaceShell() {
                       <div className="flex items-center gap-1">
                         <button type="button" onClick={() => void beginCall("audio")} title="Voice call" className="rounded-full p-2.5 text-slate-300 hover:bg-white/5 hover:text-cyan-300"><Phone className="h-5 w-5" /></button>
                         <button type="button" onClick={() => void beginCall("video")} title="Video call" className="rounded-full p-2.5 text-slate-300 hover:bg-white/5 hover:text-cyan-300"><Video className="h-5 w-5" /></button>
-                        <button type="button" title="Conversation options" className="rounded-full p-2.5 text-slate-500 hover:bg-white/5"><MoreVertical className="h-5 w-5" /></button>
+                        <div className="relative">
+                          <button type="button" onClick={() => setConversationMenuOpen((current) => !current)} aria-expanded={conversationMenuOpen} aria-label="Conversation options" title="Conversation options" className="rounded-full p-2.5 text-slate-500 hover:bg-black/5 hover:text-slate-900 dark:hover:bg-white/5 dark:hover:text-white">
+                            <MoreVertical className="h-5 w-5" />
+                          </button>
+                          {conversationMenuOpen && (
+                            <div className="absolute right-0 top-12 z-50 w-64 rounded-2xl border border-[var(--ychat-border)] bg-[var(--ychat-surface)] p-2 shadow-2xl">
+                              <div className="px-3 py-2">
+                                <p className="truncate text-sm font-semibold">{getConversationName(activeConversation)}</p>
+                                <p className="mt-0.5 text-xs text-slate-500">{activeConversation.type === "group" ? String(activeMembers.length) + " members" : "Private conversation"}</p>
+                              </div>
+                              <button type="button" onClick={() => { void navigator.clipboard?.writeText(activeConversation.id); setConversationMenuOpen(false); }} className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-black/5 dark:text-slate-200 dark:hover:bg-white/5">Copy conversation ID</button>
+                              <button type="button" onClick={() => { setConversationMenuOpen(false); setActiveConversationId(null); }} className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-black/5 dark:text-slate-200 dark:hover:bg-white/5">Close conversation</button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </header>
 
@@ -1473,7 +1487,7 @@ export function WorkspaceShell() {
                           const quoted = message.reply_to_id ? messages.find((item) => item.id === message.reply_to_id) : null;
                           return (
                             <div key={message.id} id={`ychat-message-${message.id}`} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                              <div className={`relative max-w-[88%] rounded-2xl px-3 py-2 shadow-sm sm:max-w-[72%] ${mine ? "rounded-br-md bg-[#075e72] text-white" : "rounded-bl-md border border-white/[0.055] bg-[var(--ychat-input)] text-slate-100"}`}>
+                              <div className={`relative max-w-[88%] rounded-2xl px-3 py-2 shadow-sm sm:max-w-[72%] ${mine ? "rounded-br-md border border-cyan-300/50 bg-transparent text-slate-900 dark:border-cyan-300/25 dark:text-slate-100" : "rounded-bl-md border border-black/[0.055] bg-[var(--ychat-input)] text-slate-900 dark:border-white/[0.055] dark:text-slate-100"}`}>
                                 {!mine && activeConversation.type === "group" && <p className="mb-1 text-[11px] font-semibold text-cyan-300">{getSenderName(message.sender_id)}</p>}
                                 {quoted && (
                                   <button
@@ -1486,15 +1500,18 @@ export function WorkspaceShell() {
                                   </button>
                                 )}
                                 {message.message_type === "sticker" || STICKERS.includes(message.body) ? <div className="px-2 py-1 text-5xl leading-none">{message.body}</div> : message.message_type === "voice" && attachment ? <AttachmentPlayer attachment={attachment} /> : message.message_type === "file" && attachment ? <AttachmentPlayer attachment={attachment} compact /> : <p className="whitespace-pre-wrap break-words text-[14px] leading-5">{message.body}</p>}
-                                <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-white/55"><span>{formatTime(message.created_at)}</span>{mine && <span className="text-cyan-200">✓✓</span>}</div>
+                                <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-500"><span>{formatTime(message.created_at)}</span>{message.edited_at && <span>edited</span>}{mine && <span className="text-cyan-600">✓✓</span>}</div>
                                 {reactions.length > 0 && <div className="mt-1 flex flex-wrap justify-end gap-1">{Array.from(reactionByEmoji.entries()).map(([emoji, count]) => <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-full border border-white/15 bg-black/20 px-2 py-0.5 text-xs hover:bg-white/10">{emoji}{count > 1 ? ` ${count}` : ""}</button>)}</div>}
                                 <div className="mt-1 flex justify-end">
                                   <button
                                     type="button"
-                                    aria-label="Reply to message"
+                                    {mine && message.message_type === "text" && (
+  <button type="button" aria-label="Edit message" title="Edit" onClick={() => beginEditMessage(message)} className="rounded-full px-1.5 py-1 text-[10px] font-semibold text-slate-400 hover:bg-black/5 hover:text-cyan-700 dark:hover:bg-white/10 dark:hover:text-cyan-200">Edit</button>
+)}
+                                     aria-label="Reply to message"
                                     title="Reply"
                                     onClick={() => setReplyToMessageId((current) => current === message.id ? null : message.id)}
-                                    className="rounded-full p-1 text-white/45 hover:bg-white/10 hover:text-white"
+                                    className="rounded-full p-1 text-slate-400 hover:bg-black/5 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white"
                                   >
                                     <MessageSquareReply className="h-3.5 w-3.5" />
                                   </button>
