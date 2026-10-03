@@ -1311,7 +1311,7 @@ export function WorkspaceShell() {
               <aside className={`${activeConversationId ? "hidden md:flex" : "flex"} w-full shrink-0 flex-col border-r border-white/10 bg-[var(--ychat-surface)] md:w-[360px] lg:w-[390px]`}>
                 <div className="border-b border-white/10 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))]">
                   <div className="flex items-center gap-3">
-                    <Image src="/brand/yama-logo.png" alt="Yama Ahmadi Services Informatiques" width={150} height={54} className="h-10 w-auto object-contain object-left" priority />
+                    <Image src="/icon-192.png" alt="Yama Ahmadi Services Informatiques" width={150} height={54} className="h-10 w-auto object-contain object-left" priority />
                     <div className="ml-auto flex gap-1">
                       <button type="button" onClick={() => setGroupOpen(true)} title="New group" className="rounded-full p-2.5 text-slate-400 hover:bg-white/5 hover:text-cyan-200"><Users className="h-5 w-5" /></button>
                       <button type="button" onClick={() => setManualContactOpen(true)} title="Add contact" className="rounded-full p-2.5 text-slate-400 hover:bg-white/5 hover:text-cyan-200"><Plus className="h-5 w-5" /></button>
