@@ -18,12 +18,12 @@ function resolveTheme(theme: YchatTheme): "light" | "dark" {
 }
 
 export function YchatThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<YchatTheme>("system");
+  const [theme, setThemeState] = useState<YchatTheme>("light");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
 
   useEffect(() => {
     const stored = window.localStorage.getItem("ychat:theme") as YchatTheme | null;
-    const initial = stored === "light" || stored === "dark" || stored === "system" ? stored : "system";
+    const initial = stored === "light" || stored === "dark" || stored === "system" ? stored : "light";
     setThemeState(initial);
 
     const apply = (value: YchatTheme) => {
