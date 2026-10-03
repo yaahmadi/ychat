@@ -7,6 +7,11 @@ const config: CapacitorConfig = {
   server: {
     url: 'https://ychat.yamaahmadi.com',
     cleartext: false
+  },
+  ios: {
+    contentInset: 'never',
+    preferredContentMode: 'mobile',
+    backgroundColor: '#f5f8fc'
   }
 };
 
