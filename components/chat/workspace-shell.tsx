@@ -839,8 +839,50 @@ export function WorkspaceShell() {
     }
   }
 
+  function beginEditMessage(message: MessageRow) {
+    if (message.sender_id !== userId || message.message_type !== "text") return;
+    setEditingMessageId(message.id);
+    setDraft(message.body);
+    setReplyToMessageId(null);
+    setEmojiOpen(false);
+    setStickerOpen(false);
+    setPlusOpen(false);
+    requestAnimationFrame(() => {
+      const editor = document.querySelector<HTMLTextAreaElement>("[data-ychat-message-editor]");
+      editor?.focus();
+      editor?.setSelectionRange(editor.value.length, editor.value.length);
+    });
+  }
+
+  function cancelEditMessage() {
+    setEditingMessageId(null);
+    setDraft("");
+  }
+
+  async function saveEditedMessage() {
+    const messageId = editingMessageId;
+    const body = draft.trim();
+    if (!messageId || !body || sending) return;
+    setSending(true);
+    setError(null);
+    try {
+      const updated = await updateMessage(messageId, body);
+      setMessages((current) => current.map((message) => message.id === updated.id ? updated : message));
+      setEditingMessageId(null);
+      setDraft("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to edit message.");
+    } finally {
+      setSending(false);
+    }
+  }
+
   async function handleSend(messageType: string = "text", overrideBody?: string) {
     const body = (overrideBody ?? draft).trim();
+    if (editingMessageId && messageType === "text" && !overrideBody) {
+      await saveEditedMessage();
+      return;
+    }
     if (!body || !activeConversationId || sending) return;
     setSending(true);
     setError(null);
