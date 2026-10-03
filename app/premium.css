@@ -351,3 +351,198 @@ html[data-theme="light"] .ychat-app-shell [aria-label="Edit message"]:hover,
 html[data-theme="light"] .ychat-app-shell [aria-label="Reply to message"]:hover {
   color: #087e96 !important;
 }
+
+
+/* =========================================================
+   YCHAT PREMIUM FINAL PASS
+   Light mode is the primary product surface. All interactive
+   text remains WCAG-friendly and no inherited white-on-white
+   states are allowed.
+   ========================================================= */
+
+/* Desktop: a real application workspace, not a stretched webpage. */
+@media (min-width: 1024px) {
+  .ychat-app-shell { padding: 16px 18px !important; }
+  .ychat-app-shell > .mx-auto {
+    height: calc(100dvh - 32px) !important;
+    max-height: calc(100dvh - 32px) !important;
+    max-width: 1680px !important;
+    border-radius: 30px;
+  }
+
+  .ychat-sidebar {
+    width: 218px !important;
+    margin: 0 12px 0 0 !important;
+    padding: 14px !important;
+    border-radius: 26px !important;
+  }
+
+  .ychat-sidebar nav button {
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    min-height: 50px !important;
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+    font-weight: 600;
+    text-align: left;
+  }
+
+  .ychat-sidebar nav button svg {
+    margin-bottom: 0 !important;
+    flex: 0 0 auto;
+  }
+
+  .ychat-sidebar > div:first-child > button {
+    justify-content: flex-start !important;
+    gap: 12px !important;
+    padding: 9px !important;
+  }
+
+  .ychat-main {
+    margin: 0 !important;
+    border-radius: 26px !important;
+  }
+}
+
+/* Strong Light-mode semantic text palette. */
+html[data-theme="light"] .ychat-app-shell {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .text-slate-100,
+html[data-theme="light"] .ychat-app-shell .text-slate-200,
+html[data-theme="light"] .ychat-app-shell .text-slate-300,
+html[data-theme="light"] .ychat-app-shell .text-slate-400 {
+  color: #334155 !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .text-slate-500 {
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .text-slate-600 {
+  color: #334155 !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .text-white\/45,
+html[data-theme="light"] .ychat-app-shell .text-white\/55,
+html[data-theme="light"] .ychat-app-shell .text-white\/60,
+html[data-theme="light"] .ychat-app-shell .text-white\/70 {
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .text-cyan-100,
+html[data-theme="light"] .ychat-app-shell .text-cyan-200,
+html[data-theme="light"] .ychat-app-shell .text-cyan-300 {
+  color: #087e96 !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .text-emerald-200,
+html[data-theme="light"] .ychat-app-shell .text-emerald-300,
+html[data-theme="light"] .ychat-app-shell .text-emerald-400 {
+  color: #047857 !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .text-rose-200,
+html[data-theme="light"] .ychat-app-shell .text-rose-300,
+html[data-theme="light"] .ychat-app-shell .text-rose-400 {
+  color: #be123c !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .text-blue-200,
+html[data-theme="light"] .ychat-app-shell .text-blue-300 {
+  color: #1d4ed8 !important;
+}
+
+/* Interactive controls: dark readable labels on hover/focus/active. */
+html[data-theme="light"] .ychat-app-shell button:hover,
+html[data-theme="light"] .ychat-app-shell button:focus-visible,
+html[data-theme="light"] .ychat-app-shell a:hover,
+html[data-theme="light"] .ychat-app-shell a:focus-visible {
+  color: #0f172a;
+}
+
+html[data-theme="light"] .ychat-app-shell .hover\:text-white:hover {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .hover\:text-cyan-200:hover,
+html[data-theme="light"] .ychat-app-shell .hover\:text-cyan-300:hover {
+  color: #075e72 !important;
+}
+
+/* Keep accent buttons intentionally high contrast. */
+html[data-theme="light"] .ychat-app-shell .bg-cyan-500,
+html[data-theme="light"] .ychat-app-shell .bg-cyan-400 {
+  color: #06232a !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .bg-rose-500 {
+  color: #ffffff !important;
+}
+
+/* Cards and controls get a quiet premium hierarchy. */
+html[data-theme="light"] .ychat-app-shell .border-white\/10,
+html[data-theme="light"] .ychat-app-shell .border-white\/15 {
+  border-color: rgba(15, 23, 42, .10) !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .hover\:border-cyan-400\/25:hover,
+html[data-theme="light"] .ychat-app-shell .hover\:border-cyan-400\/30:hover {
+  border-color: rgba(8, 126, 150, .32) !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .hover\:bg-white\/10:hover,
+html[data-theme="light"] .ychat-app-shell .hover\:bg-white\/5:hover {
+  background-color: rgba(15, 23, 42, .055) !important;
+}
+
+/* Outgoing messages: no heavy dark bubble in Light mode. */
+html[data-theme="light"] .ychat-app-shell .bg-transparent {
+  background-color: transparent !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .border-cyan-300\/50 {
+  border-color: rgba(8, 126, 150, .22) !important;
+}
+
+/* Message action buttons remain visible and readable. */
+html[data-theme="light"] .ychat-app-shell [aria-label="Edit message"],
+html[data-theme="light"] .ychat-app-shell [aria-label="Reply to message"],
+html[data-theme="light"] .ychat-app-shell [aria-label="React to message"] {
+  color: #475569 !important;
+}
+
+html[data-theme="light"] .ychat-app-shell [aria-label="Edit message"]:hover,
+html[data-theme="light"] .ychat-app-shell [aria-label="Reply to message"]:hover,
+html[data-theme="light"] .ychat-app-shell [aria-label="React to message"]:hover {
+  color: #075e72 !important;
+  background: rgba(8,126,150,.07) !important;
+}
+
+/* Inputs: explicit foreground instead of inherited text color. */
+html[data-theme="light"] .ychat-app-shell input,
+html[data-theme="light"] .ychat-app-shell textarea,
+html[data-theme="light"] .ychat-app-shell select {
+  color: #0f172a !important;
+  caret-color: #087e96;
+}
+
+html[data-theme="light"] .ychat-app-shell input::placeholder,
+html[data-theme="light"] .ychat-app-shell textarea::placeholder {
+  color: #64748b !important;
+  opacity: 1 !important;
+}
+
+/* Premium mobile navigation remains compact and readable. */
+@media (max-width: 1023px) {
+  .ychat-app-shell nav:last-child button {
+    color: #475569 !important;
+  }
+
+  html[data-theme="light"] .ychat-app-shell nav:last-child button[class*="text-cyan"] {
+    color: #087e96 !important;
+    font-weight: 700;
+  }
+}
