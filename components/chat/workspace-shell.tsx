@@ -69,6 +69,7 @@ import {
   uploadProfileAvatar,
   updateMyProfile,
   uploadVoiceMessage,
+  updateMessage,
 } from "@/lib/supabase/chat";
 import { createClient } from "@/lib/supabase/client";
 import { useWebRtcCall, type CallMode } from "@/hooks/use-web-rtc-call";
@@ -279,6 +280,8 @@ export function WorkspaceShell() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [conversationMenuOpen, setConversationMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -628,6 +631,8 @@ export function WorkspaceShell() {
   }, [userId]);
 
   const currentProfile = useMemo(() => profiles.find((profile) => profile.id === userId) ?? null, [profiles, userId]);
+  const isAdmin = currentProfile?.role === "admin";
+  const visibleNavItems = useMemo(() => navItems.filter(({ id }) => id !== "admin" || isAdmin), [isAdmin]);
 
   const otherProfiles = useMemo(() => profiles.filter((profile) => profile.id !== userId), [profiles, userId]);
   const shareCode = currentProfile?.contact_code || currentProfile?.username || userId || "";
@@ -654,6 +659,8 @@ export function WorkspaceShell() {
       setProfileUsername(currentProfile.username || "");
     }
     setView(nextView);
+    setConversationMenuOpen(false);
+    setEditingMessageId(null);
     if (nextView !== "chats") setActiveConversationId(null);
   }
   const activeConversation = useMemo(() => conversations.find((conversation) => conversation.id === activeConversationId) ?? null, [conversations, activeConversationId]);
@@ -1229,7 +1236,7 @@ export function WorkspaceShell() {
               <Image src="/icon-192.png" alt="Ychat" width={44} height={44} className="rounded-xl" />
             </button>
             <nav className="space-y-1.5">
-              {navItems.map(({ id, label, icon: Icon }) => (
+              {visibleNavItems.map(({ id, label, icon: Icon }) => (
                 <button key={id} type="button" onClick={() => navigateView(id)} className={`flex w-full flex-col items-center rounded-2xl px-2 py-2.5 text-[10px] transition ${view === id ? "bg-cyan-500/15 text-cyan-200 shadow-[inset_0_0_0_1px_rgba(34,211,238,.18)]" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}>
                   <Icon className="mb-1 h-5 w-5" />{label}
                 </button>
