@@ -363,3 +363,143 @@ html[data-theme="light"] .ychat-main [class*="bg-[#07111f]"] {
     background: rgba(255,255,255,.94) !important;
   }
 }
+
+
+/* Mobile native iPhone fitting + adaptive surface hardening */
+
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+html[data-theme="light"] .ychat-app-shell {
+  background: var(--ychat-bg) !important;
+  color: var(--ychat-text) !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .border-white\/10,
+html[data-theme="light"] .ychat-app-shell .border-white\/\[0\.045\],
+html[data-theme="light"] .ychat-app-shell .border-white\/\[0\.055\] {
+  border-color: var(--ychat-border) !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .text-slate-100,
+html[data-theme="light"] .ychat-app-shell .text-slate-200,
+html[data-theme="light"] .ychat-app-shell .text-slate-300 {
+  color: var(--ychat-text) !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .text-slate-400 {
+  color: var(--ychat-text-2) !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .text-slate-500,
+html[data-theme="light"] .ychat-app-shell .text-slate-600 {
+  color: var(--ychat-text-3) !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .bg-white\/5 {
+  background: rgba(15, 23, 42, .035) !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .bg-white\/10 {
+  background: rgba(15, 23, 42, .055) !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .hover\:bg-white\/5:hover {
+  background: rgba(15, 23, 42, .045) !important;
+}
+
+html[data-theme="light"] .ychat-app-shell .bg-black\/10,
+html[data-theme="light"] .ychat-app-shell .bg-black\/20,
+html[data-theme="light"] .ychat-app-shell .bg-black\/30 {
+  background: rgba(15, 23, 42, .035) !important;
+}
+
+.ychat-app-shell {
+  width: 100%;
+  max-width: 100vw;
+  min-width: 0;
+  height: 100dvh;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.ychat-app-shell > .mx-auto {
+  width: 100%;
+  max-width: 1800px;
+  min-width: 0;
+  height: 100%;
+}
+
+.ychat-main,
+.ychat-sidebar,
+.ychat-main > *,
+.ychat-sidebar > * {
+  min-width: 0;
+}
+
+@media (max-width: 1023px) {
+  .ychat-app-shell {
+    position: fixed;
+    inset: 0;
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: 100dvh;
+    width: 100vw;
+    max-width: 100vw;
+    overflow: hidden;
+  }
+
+  .ychat-app-shell > .mx-auto {
+    height: 100%;
+    width: 100%;
+  }
+
+  .ychat-main {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+  }
+
+  .ychat-main > section {
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .ychat-app-shell nav[aria-label] {
+    flex-shrink: 0;
+  }
+
+  .ychat-app-shell input,
+  .ychat-app-shell textarea,
+  .ychat-app-shell button {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  .ychat-app-shell {
+    font-size: 15px;
+  }
+
+  .ychat-app-shell .max-w-\[360px\] {
+    max-width: min(360px, 82vw);
+  }
+
+  .ychat-app-shell .w-\[min\(360px\,70vw\)\] {
+    width: min(360px, 78vw);
+  }
+}
+
+@supports (padding: max(0px)) {
+  .ychat-app-shell {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+}
