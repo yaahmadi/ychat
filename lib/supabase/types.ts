@@ -39,6 +39,27 @@ export type MessageRow = {
   created_at?: string | null;
 };
 
+
+export type MessageReactionRow = {
+  message_id: string;
+  user_id: string;
+  reaction: string;
+  created_at: string;
+};
+
+export type StoryViewRow = {
+  story_id: string;
+  user_id: string;
+  viewed_at: string;
+};
+
+export type StoryReactionRow = {
+  story_id: string;
+  user_id: string;
+  reaction: string;
+  created_at: string;
+};
+
 export type AttachmentRow = {
   id: string;
   message_id: string;
