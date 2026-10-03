@@ -1168,7 +1168,7 @@ export function WorkspaceShell() {
   const attachmentByMessage = new Map(attachments.map((attachment) => [attachment.message_id, attachment]));
 
   return (
-    <div className="ychat-app-shell bg-[#030712] text-slate-100">
+    <div className="ychat-app-shell min-h-0 overflow-hidden bg-[var(--ychat-bg)] text-[var(--ychat-text)]">
       {call.incomingCall && !call.activeCall && (
         <IncomingCallCard
           invite={call.incomingCall}
@@ -1223,7 +1223,7 @@ export function WorkspaceShell() {
       )}
 
       <div className="mx-auto flex h-full max-w-[1800px]">
-        <aside className="hidden w-[88px] shrink-0 flex-col justify-between border-r border-white/10 bg-[#07111f] p-3 lg:flex">
+        <aside className="ychat-sidebar hidden w-[88px] shrink-0 flex-col justify-between border-r border-white/10 bg-[#07111f] p-3 lg:flex">
           <div>
             <button type="button" onClick={() => navigateView("chats")} className="mb-4 flex w-full items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-2.5">
               <Image src="/icon-192.png" alt="Ychat" width={44} height={44} className="rounded-xl" />
@@ -1239,7 +1239,7 @@ export function WorkspaceShell() {
           <div className="rounded-2xl border border-white/10 bg-white/5 p-2 text-center text-[10px] text-slate-500"><ShieldCheck className="mx-auto mb-1 h-4 w-4 text-cyan-300" />Secure</div>
         </aside>
 
-        <main className="relative flex min-w-0 flex-1 flex-col bg-[#06101d]">
+        <main className="ychat-main relative flex min-w-0 flex-1 flex-col bg-[#06101d]">
           {error && (
             <div className="absolute inset-x-3 top-[calc(.75rem+env(safe-area-inset-top))] z-50 flex items-start justify-between gap-3 rounded-2xl border border-rose-500/20 bg-rose-950/95 px-3 py-2 text-xs leading-5 text-rose-100 shadow-lg backdrop-blur">
               <span className="line-clamp-2">{error}</span><button type="button" onClick={() => setError(null)} className="shrink-0 pt-0.5"><X className="h-4 w-4" /></button>
