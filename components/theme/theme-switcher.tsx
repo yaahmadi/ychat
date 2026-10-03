@@ -10,7 +10,7 @@ const options: Array<{ value: YchatTheme; label: string; description: string; ic
 ];
 
 export function ThemeSwitcher() {
-  const { theme } = useYchatTheme();
+  const { theme, setTheme } = useYchatTheme();
 
   return (
     <div className="grid grid-cols-3 gap-2" role="group" aria-label="Appearance">
@@ -20,10 +20,7 @@ export function ThemeSwitcher() {
           <button
             key={value}
             type="button"
-            onClick={() => {
-              const event = new CustomEvent("ychat:set-theme", { detail: value });
-              window.dispatchEvent(event);
-            }}
+            onClick={() => setTheme(value)}
             className={selected ? "ychat-theme-option ychat-theme-option-active" : "ychat-theme-option"}
             aria-pressed={selected}
             title={description}
