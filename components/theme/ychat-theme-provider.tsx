@@ -40,7 +40,19 @@ export function YchatThemeProvider({ children }: { children: React.ReactNode }) 
       if (initial === "system") apply("system");
     };
     media.addEventListener?.("change", onChange);
-    return () => media.removeEventListener?.("change", onChange);
+    const onThemeRequest = (event: Event) => {
+      const value = (event as CustomEvent<YchatTheme>).detail;
+      if (value === "system" || value === "light" || value === "dark") {
+        setThemeState(value);
+        window.localStorage.setItem("ychat:theme", value);
+        apply(value);
+      }
+    };
+    window.addEventListener("ychat:set-theme", onThemeRequest);
+    return () => {
+      media.removeEventListener?.("change", onChange);
+      window.removeEventListener("ychat:set-theme", onThemeRequest);
+    };
   }, []);
 
   const setTheme = (value: YchatTheme) => {
