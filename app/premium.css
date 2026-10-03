@@ -306,3 +306,48 @@ html[data-theme="light"] .ychat-app-shell [class~="bg-[#075e72]"] [class~="text-
 html[data-theme="light"] .ychat-app-shell [class~="bg-[#075e72]"] [class~="text-white/60"] {
   color: rgba(255,255,255,.72) !important;
 }
+
+
+/* Final desktop framing: keep the workspace comfortably centered instead of edge-to-edge. */
+@media (min-width: 1024px) {
+  .ychat-app-shell {
+    padding: 14px 18px !important;
+  }
+
+  .ychat-app-shell > .mx-auto {
+    height: calc(100dvh - 28px);
+    max-height: calc(100dvh - 28px);
+  }
+
+  .ychat-sidebar {
+    margin: 0 10px 0 0;
+  }
+
+  .ychat-main {
+    margin: 0;
+  }
+}
+
+/* Outgoing messages are intentionally transparent in Light mode: readable dark text,
+   subtle outline, and no heavy colored bubble. */
+html[data-theme="light"] .ychat-app-shell .border-cyan-300\/50.bg-transparent {
+  color: #0f172a !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .ychat-app-shell .border-cyan-300\/50.bg-transparent {
+  color: #f8fafc !important;
+  background-color: transparent !important;
+}
+
+/* Premium message actions stay quiet until interaction. */
+html[data-theme="light"] .ychat-app-shell [aria-label="Edit message"],
+html[data-theme="light"] .ychat-app-shell [aria-label="Reply to message"] {
+  color: #64748b !important;
+}
+
+html[data-theme="light"] .ychat-app-shell [aria-label="Edit message"]:hover,
+html[data-theme="light"] .ychat-app-shell [aria-label="Reply to message"]:hover {
+  color: #087e96 !important;
+}
