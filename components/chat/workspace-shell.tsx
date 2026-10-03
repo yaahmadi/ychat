@@ -246,7 +246,7 @@ function AttachmentPlayer({ attachment, compact = false }: { attachment: Attachm
 function Modal({ children, onClose }: { children: ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onMouseDown={onClose}>
-      <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#071827] shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
+      <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[var(--ychat-surface)] shadow-2xl" onMouseDown={(event) => event.stopPropagation()}>
         {children}
       </div>
     </div>
@@ -1154,7 +1154,7 @@ export function WorkspaceShell() {
 
   if (loading) {
     return (
-      <div className="relative flex min-h-screen min-h-dvh items-center justify-center overflow-hidden bg-[#030712] text-slate-100">
+      <div className="relative flex min-h-screen min-h-dvh items-center justify-center overflow-hidden bg-[var(--ychat-bg)] text-slate-100">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(34,211,238,0.18),_transparent_42%),linear-gradient(135deg,_#020617,_#071827,_#03111f)]" />
         <div className="relative rounded-3xl border border-cyan-400/20 bg-[#04111f]/80 px-8 py-7 text-center backdrop-blur-xl">
           <Image src="/icon-192.png" alt="Ychat" width={72} height={72} className="mx-auto rounded-2xl" priority />
@@ -1201,7 +1201,7 @@ export function WorkspaceShell() {
             <button type="button" onClick={() => setGroupOpen(false)} className="rounded-full p-2 text-slate-400 hover:bg-white/5"><X className="h-5 w-5" /></button>
           </div>
           <div className="space-y-4 p-5">
-            <input value={groupTitle} onChange={(event) => setGroupTitle(event.target.value)} placeholder="Group name" className="w-full rounded-2xl border border-white/10 bg-[#0b1c2f] px-4 py-3 outline-none focus:border-cyan-500/50" />
+            <input value={groupTitle} onChange={(event) => setGroupTitle(event.target.value)} placeholder="Group name" className="w-full rounded-2xl border border-white/10 bg-[var(--ychat-surface)] px-4 py-3 outline-none focus:border-cyan-500/50" />
             <div>
               <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">Select members</p>
               <div className="max-h-72 space-y-1 overflow-y-auto ychat-scrollbar">
@@ -1223,7 +1223,7 @@ export function WorkspaceShell() {
       )}
 
       <div className="mx-auto flex h-full max-w-[1800px]">
-        <aside className="ychat-sidebar hidden w-[88px] shrink-0 flex-col justify-between border-r border-white/10 bg-[#07111f] p-3 lg:flex">
+        <aside className="ychat-sidebar hidden w-[88px] shrink-0 flex-col justify-between border-r border-white/10 bg-[var(--ychat-surface)] p-3 lg:flex">
           <div>
             <button type="button" onClick={() => navigateView("chats")} className="mb-4 flex w-full items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-2.5">
               <Image src="/icon-192.png" alt="Ychat" width={44} height={44} className="rounded-xl" />
@@ -1239,7 +1239,7 @@ export function WorkspaceShell() {
           <div className="rounded-2xl border border-white/10 bg-white/5 p-2 text-center text-[10px] text-slate-500"><ShieldCheck className="mx-auto mb-1 h-4 w-4 text-cyan-300" />Secure</div>
         </aside>
 
-        <main className="ychat-main relative flex min-w-0 flex-1 flex-col bg-[#06101d]">
+        <main className="ychat-main relative flex min-w-0 flex-1 flex-col bg-[var(--ychat-bg)]">
           {error && (
             <div className="absolute inset-x-3 top-[calc(.75rem+env(safe-area-inset-top))] z-50 flex items-start justify-between gap-3 rounded-2xl border border-rose-500/20 bg-rose-950/95 px-3 py-2 text-xs leading-5 text-rose-100 shadow-lg backdrop-blur">
               <span className="line-clamp-2">{error}</span><button type="button" onClick={() => setError(null)} className="shrink-0 pt-0.5"><X className="h-4 w-4" /></button>
@@ -1253,10 +1253,10 @@ export function WorkspaceShell() {
                   <button type="button" onClick={() => setManualContactOpen(false)} className="rounded-full p-2 text-slate-500 hover:bg-white/5"><X className="h-4 w-4" /></button>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <input value={manualFirstName} onChange={(event) => setManualFirstName(event.target.value)} placeholder="First name" className="rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500" />
-                  <input value={manualLastName} onChange={(event) => setManualLastName(event.target.value)} placeholder="Last name" className="rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500" />
-                  <input value={manualPhone} onChange={(event) => setManualPhone(event.target.value)} placeholder="Phone number" className="rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500" />
-                  <input value={manualEmail} onChange={(event) => setManualEmail(event.target.value)} placeholder="Email address" className="rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500" />
+                  <input value={manualFirstName} onChange={(event) => setManualFirstName(event.target.value)} placeholder="First name" className="rounded-xl border border-white/10 bg-[var(--ychat-input)] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500" />
+                  <input value={manualLastName} onChange={(event) => setManualLastName(event.target.value)} placeholder="Last name" className="rounded-xl border border-white/10 bg-[var(--ychat-input)] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500" />
+                  <input value={manualPhone} onChange={(event) => setManualPhone(event.target.value)} placeholder="Phone number" className="rounded-xl border border-white/10 bg-[var(--ychat-input)] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500" />
+                  <input value={manualEmail} onChange={(event) => setManualEmail(event.target.value)} placeholder="Email address" className="rounded-xl border border-white/10 bg-[var(--ychat-input)] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500" />
                 </div>
                 <button type="button" onClick={() => void addManualContact()} disabled={addingContact || (!manualEmail.trim() && !manualPhone.trim())} className="mt-4 w-full rounded-xl bg-cyan-500 px-4 py-3 text-sm font-semibold text-slate-950 disabled:opacity-40">{addingContact ? "Adding..." : "Add contact"}</button>
               </div>
@@ -1272,7 +1272,7 @@ export function WorkspaceShell() {
                       <div><h2 className="text-lg font-semibold">Call with Ychat</h2><p className="mt-1 text-xs text-slate-500">Enter phone, email, username, or Ychat ID.</p></div>
                       <button type="button" onClick={() => setDialPadOpen(false)} className="rounded-full p-2 text-slate-500 hover:bg-white/5"><X className="h-4 w-4" /></button>
                     </div>
-                    <input value={dialNumber} onChange={(event) => setDialNumber(event.target.value)} placeholder="+336..., email, username or ID" className="mb-4 w-full rounded-2xl border border-white/10 bg-[#102438] px-4 py-3 text-center font-mono text-lg outline-none placeholder:text-sm placeholder:font-sans placeholder:text-slate-500 focus:border-cyan-500/30" />
+                    <input value={dialNumber} onChange={(event) => setDialNumber(event.target.value)} placeholder="+336..., email, username or ID" className="mb-4 w-full rounded-2xl border border-white/10 bg-[var(--ychat-input)] px-4 py-3 text-center font-mono text-lg outline-none placeholder:text-sm placeholder:font-sans placeholder:text-slate-500 focus:border-cyan-500/30" />
                     <div className="grid grid-cols-3 gap-2">
                       {["1","2","3","4","5","6","7","8","9","+","0","⌫"].map((key) => (
                         <button key={key} type="button" onClick={() => setDialNumber((current) => key === "⌫" ? current.slice(0, -1) : current + key)} className="rounded-2xl border border-white/10 bg-white/5 py-4 text-xl font-semibold hover:bg-white/10">{key}</button>
@@ -1282,14 +1282,14 @@ export function WorkspaceShell() {
                   </div>
                 </Modal>
               )}
-              <div className="mb-4 grid grid-cols-2 rounded-2xl border border-white/10 bg-[#0a1b2d] p-1">
+              <div className="mb-4 grid grid-cols-2 rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-1">
                 {(["recent", "missed"] as const).map((filter) => (
                   <button key={filter} type="button" onClick={() => setCallFilter(filter)} className={`rounded-xl px-4 py-2.5 text-sm font-semibold capitalize ${callFilter === filter ? "bg-cyan-500 text-slate-950" : "text-slate-400 hover:text-white"}`}>{filter}</button>
                 ))}
               </div>
               <div className="space-y-2">
                 {callLogs.filter((item) => callFilter === "recent" || item.direction === "missed").map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0a1b2d] p-4">
+                  <div key={item.id} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-4">
                     <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${item.direction === "missed" ? "bg-rose-500/15 text-rose-300" : "bg-cyan-500/15 text-cyan-200"}`}>
                       {item.mode === "video" ? <Video className="h-5 w-5" /> : <Phone className="h-5 w-5" />}
                     </div>
@@ -1308,7 +1308,7 @@ export function WorkspaceShell() {
 
           {view === "chats" && (
             <div className="flex min-h-0 flex-1">
-              <aside className={`${activeConversationId ? "hidden md:flex" : "flex"} w-full shrink-0 flex-col border-r border-white/10 bg-[#071827] md:w-[360px] lg:w-[390px]`}>
+              <aside className={`${activeConversationId ? "hidden md:flex" : "flex"} w-full shrink-0 flex-col border-r border-white/10 bg-[var(--ychat-surface)] md:w-[360px] lg:w-[390px]`}>
                 <div className="border-b border-white/10 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))]">
                   <div className="flex items-center gap-3">
                     <Image src="/brand/yama-logo.png" alt="Yama Ahmadi Services Informatiques" width={150} height={54} className="h-10 w-auto object-contain object-left" priority />
@@ -1319,7 +1319,7 @@ export function WorkspaceShell() {
                       <button type="button" title="Menu" className="rounded-full p-2.5 text-slate-500 hover:bg-white/5"><MoreVertical className="h-5 w-5" /></button>
                     </div>
                   </div>
-                  <div className="mt-3 flex items-center gap-2 rounded-xl bg-[#102438] px-3 py-2.5 text-slate-400">
+                  <div className="mt-3 flex items-center gap-2 rounded-xl bg-[var(--ychat-input)] px-3 py-2.5 text-slate-400">
                     <Search className="h-4 w-4" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search or start new chat" className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-500" />
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-2">
@@ -1342,10 +1342,10 @@ export function WorkspaceShell() {
                 </div>
 
                 {peopleOpen && (
-                  <div className="border-b border-white/10 bg-[#0a1b2d] p-3">
+                  <div className="border-b border-white/10 bg-[var(--ychat-surface)] p-3">
                     <div className="mb-2 flex items-center justify-between px-1"><p className="text-xs font-semibold uppercase tracking-wider text-cyan-400">New chat</p><button type="button" onClick={() => setPeopleOpen(false)}><X className="h-4 w-4 text-slate-500" /></button></div>
                     <div className="mb-3 flex gap-2">
-                      <input value={contactLookup} onChange={(event) => setContactLookup(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void handleAddContact(); }} placeholder="Email, username or Ychat ID" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#102438] px-3 py-2 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-500/30" />
+                      <input value={contactLookup} onChange={(event) => setContactLookup(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void handleAddContact(); }} placeholder="Email, username or Ychat ID" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[var(--ychat-input)] px-3 py-2 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-500/30" />
                       <button type="button" onClick={() => void handleAddContact()} disabled={!contactLookup.trim() || addingContact} className="rounded-xl bg-cyan-500 px-3 text-sm font-semibold text-slate-950 disabled:opacity-40">Add</button>
                     </div>
                     <div className="mb-3 grid grid-cols-2 gap-2">
@@ -1372,7 +1372,7 @@ export function WorkspaceShell() {
                       </button>
                       {chatStories.map(({ profileId, profile, items }) => (
                         <button key={profileId} type="button" onClick={() => navigateView("stories")} className="flex w-16 shrink-0 flex-col items-center gap-1.5 text-center">
-                          <span className="rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 p-[2px]"><span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-[#071827] bg-[#102438] text-sm font-semibold text-cyan-100">{initials(profile?.display_name)}</span></span>
+                          <span className="rounded-full bg-gradient-to-tr from-cyan-400 to-blue-500 p-[2px]"><span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border-2 border-[#071827] bg-[var(--ychat-input)] text-sm font-semibold text-cyan-100">{initials(profile?.display_name)}</span></span>
                           <span className="w-full truncate text-[10px] text-slate-300">{profileId === userId ? "You" : profile?.display_name || "User"} {items.length > 1 ? `(${items.length})` : ""}</span>
                         </button>
                       ))}
@@ -1383,7 +1383,7 @@ export function WorkspaceShell() {
                   ) : filteredConversations.map((conversation) => {
                     const profile = getConversationProfile(conversation);
                     return (
-                      <button key={conversation.id} type="button" onClick={() => selectConversation(conversation.id)} className={`flex w-full items-center gap-3 border-b border-white/[0.045] px-4 py-3 text-left transition hover:bg-white/[0.035] ${activeConversationId === conversation.id || selectedConversationIds.includes(conversation.id) ? "bg-[#102438]" : ""}`}>
+                      <button key={conversation.id} type="button" onClick={() => selectConversation(conversation.id)} className={`flex w-full items-center gap-3 border-b border-white/[0.045] px-4 py-3 text-left transition hover:bg-white/[0.035] ${activeConversationId === conversation.id || selectedConversationIds.includes(conversation.id) ? "bg-[var(--ychat-input)]" : ""}`}>
                         {chatSelectMode && <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${selectedConversationIds.includes(conversation.id) ? "border-cyan-400 bg-cyan-500 text-slate-950" : "border-white/20"}`}>{selectedConversationIds.includes(conversation.id) && <Check className="h-3.5 w-3.5" />}</div>}
                         {conversation.type === "group" ? <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-cyan-500/15 text-cyan-200"><Users className="h-5 w-5" /></div> : <div className="relative"><Avatar profile={profile} />{isProfileOnline(profile) && <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-[#071827] bg-emerald-400" />}</div>}
                         <div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><p className="truncate text-[15px] font-medium">{getConversationName(conversation)}</p><span className="text-[11px] text-slate-500">{formatTime(conversation.updated_at)}</span></div><p className="mt-1 truncate text-xs text-slate-500">{conversation.type === "group" ? `${conversation.conversation_members?.length ?? 0} members` : isProfileOnline(profile) ? "online" : "Tap to open conversation"}</p></div>
@@ -1397,10 +1397,10 @@ export function WorkspaceShell() {
                 </div>
               </aside>
 
-              <section className={`${activeConversationId ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col bg-[#06101d]`}>
+              <section className={`${activeConversationId ? "flex" : "hidden md:flex"} min-w-0 flex-1 flex-col bg-[var(--ychat-bg)]`}>
                 {activeConversation ? (
                   <>
-                    <header className="flex min-h-[68px] shrink-0 items-center gap-3 border-b border-white/10 bg-[#091a2b] px-3 pb-2 pt-[max(.5rem,env(safe-area-inset-top))] sm:px-4">
+                    <header className="flex min-h-[68px] shrink-0 items-center gap-3 border-b border-white/10 bg-[var(--ychat-surface-2)] px-3 pb-2 pt-[max(.5rem,env(safe-area-inset-top))] sm:px-4">
                       <button type="button" onClick={() => setActiveConversationId(null)} className="rounded-full p-2 text-slate-400 md:hidden"><ChevronLeft className="h-5 w-5" /></button>
                       {activeConversation.type === "group" ? <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-500/15 text-cyan-200"><Users className="h-5 w-5" /></div> : <Avatar profile={getConversationProfile(activeConversation)} size="sm" />}
                       <div className="min-w-0 flex-1"><p className="truncate text-[15px] font-semibold">{getConversationName(activeConversation)}</p><p className="truncate text-xs text-slate-500">{activeConversation.type === "group" ? activeMembers.map((member) => member.display_name).join(", ") : getProfileContactLine(getConversationProfile(activeConversation))}</p></div>
@@ -1413,7 +1413,7 @@ export function WorkspaceShell() {
 
                     <div ref={messagesScrollRef} className="ychat-chat-wallpaper ychat-scrollbar min-h-0 flex-1 overscroll-contain overflow-y-auto px-3 py-5 sm:px-6">
                       <div className="mx-auto max-w-4xl space-y-2">
-                        <div className="mx-auto mb-5 w-fit rounded-lg bg-[#102438]/90 px-3 py-1.5 text-center text-[11px] text-slate-400 shadow">Messages are stored securely in your Ychat workspace.</div>
+                        <div className="mx-auto mb-5 w-fit rounded-lg bg-[var(--ychat-input)]/90 px-3 py-1.5 text-center text-[11px] text-slate-400 shadow">Messages are stored securely in your Ychat workspace.</div>
                         {messages.length === 0 && <div className="py-16 text-center text-sm text-slate-500">No messages yet. Send the first one.</div>}
                         {messages.map((message) => {
                           const mine = message.sender_id === userId;
@@ -1424,7 +1424,7 @@ export function WorkspaceShell() {
                           const quoted = message.reply_to_id ? messages.find((item) => item.id === message.reply_to_id) : null;
                           return (
                             <div key={message.id} id={`ychat-message-${message.id}`} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                              <div className={`relative max-w-[88%] rounded-2xl px-3 py-2 shadow-sm sm:max-w-[72%] ${mine ? "rounded-br-md bg-[#075e72] text-white" : "rounded-bl-md border border-white/[0.055] bg-[#102438] text-slate-100"}`}>
+                              <div className={`relative max-w-[88%] rounded-2xl px-3 py-2 shadow-sm sm:max-w-[72%] ${mine ? "rounded-br-md bg-[#075e72] text-white" : "rounded-bl-md border border-white/[0.055] bg-[var(--ychat-input)] text-slate-100"}`}>
                                 {!mine && activeConversation.type === "group" && <p className="mb-1 text-[11px] font-semibold text-cyan-300">{getSenderName(message.sender_id)}</p>}
                                 {quoted && (
                                   <button
@@ -1452,7 +1452,7 @@ export function WorkspaceShell() {
                                 </div>
                                 <div className="relative mt-1 flex justify-end">
                                   <button type="button" aria-label="React to message" onClick={() => setReactionPickerMessageId((current) => current === message.id ? null : message.id)} className="rounded-full p-1 text-white/45 hover:bg-white/10 hover:text-white"><Smile className="h-3.5 w-3.5" /></button>
-                                  {reactionPickerMessageId === message.id && <div className={`absolute bottom-7 z-40 flex max-w-[260px] flex-wrap gap-1 rounded-2xl border border-white/10 bg-[#071827] p-2 shadow-2xl ${mine ? "right-0" : "left-0"}`}>{["❤️","👍","😂","😮","😢","😡","👏","🔥","🎉","🙏","💯","🚀"].map((emoji) => <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-lg p-1.5 text-lg hover:bg-white/10">{emoji}</button>)}</div>}
+                                  {reactionPickerMessageId === message.id && <div className={`absolute bottom-7 z-40 flex max-w-[260px] flex-wrap gap-1 rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-2 shadow-2xl ${mine ? "right-0" : "left-0"}`}>{["❤️","👍","😂","😮","😢","😡","👏","🔥","🎉","🙏","💯","🚀"].map((emoji) => <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-lg p-1.5 text-lg hover:bg-white/10">{emoji}</button>)}</div>}
                                 </div>
                               </div>
                             </div>
@@ -1462,7 +1462,7 @@ export function WorkspaceShell() {
                       </div>
                     </div>
 
-                    <div className="relative shrink-0 border-t border-white/10 bg-[#091a2b] px-2 py-2 sm:px-3">
+                    <div className="relative shrink-0 border-t border-white/10 bg-[var(--ychat-surface-2)] px-2 py-2 sm:px-3">
                       {replyToMessageId && (() => {
                         const target = messages.find((item) => item.id === replyToMessageId);
                         if (!target) return null;
@@ -1478,7 +1478,7 @@ export function WorkspaceShell() {
                         );
                       })()}
                       {plusOpen && (
-                        <div className="absolute bottom-[72px] left-3 z-30 w-[280px] max-w-[calc(100vw-24px)] rounded-2xl border border-white/10 bg-[#0b1c2f] p-2 shadow-2xl">
+                        <div className="absolute bottom-[72px] left-3 z-30 w-[280px] max-w-[calc(100vw-24px)] rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-2 shadow-2xl">
                           <button type="button" onClick={() => { fileInputRef.current?.click(); setPlusOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-200 hover:bg-white/5"><Plus className="h-5 w-5 text-cyan-300" /> Photo, video or file</button>
                           <button type="button" onClick={() => { setPlusOpen(false); void startVoiceRecording(); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-200 hover:bg-white/5"><Mic className="h-5 w-5 text-cyan-300" /> Voice message</button>
                           <button type="button" onClick={() => { setStickerOpen(true); setEmojiOpen(false); setPlusOpen(false); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-slate-200 hover:bg-white/5"><Sparkles className="h-5 w-5 text-cyan-300" /> Stickers</button>
@@ -1486,13 +1486,13 @@ export function WorkspaceShell() {
                         </div>
                       )}
                       {emojiOpen && (
-                        <div className="absolute bottom-[72px] left-3 z-30 w-[310px] max-w-[calc(100vw-24px)] rounded-2xl border border-white/10 bg-[#0b1c2f] p-3 shadow-2xl">
+                        <div className="absolute bottom-[72px] left-3 z-30 w-[310px] max-w-[calc(100vw-24px)] rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-3 shadow-2xl">
                           <div className="mb-2 flex items-center justify-between"><span className="text-xs font-semibold text-slate-400">Emoji</span><button type="button" onClick={() => setEmojiOpen(false)}><X className="h-4 w-4 text-slate-500" /></button></div>
                           <div className="grid grid-cols-8 gap-1">{EMOJIS.map((emoji) => <button key={emoji} type="button" onClick={() => setDraft((current) => current + emoji)} className="rounded-lg p-1.5 text-xl hover:bg-white/5">{emoji}</button>)}</div>
                         </div>
                       )}
                       {stickerOpen && (
-                        <div className="absolute bottom-[72px] left-12 z-30 w-[280px] max-w-[calc(100vw-24px)] rounded-2xl border border-white/10 bg-[#0b1c2f] p-3 shadow-2xl">
+                        <div className="absolute bottom-[72px] left-12 z-30 w-[280px] max-w-[calc(100vw-24px)] rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-3 shadow-2xl">
                           <div className="mb-2 flex items-center justify-between"><span className="text-xs font-semibold text-slate-400">Stickers</span><button type="button" onClick={() => setStickerOpen(false)}><X className="h-4 w-4 text-slate-500" /></button></div>
                           <div className="grid grid-cols-4 gap-2">{STICKERS.map((sticker) => <button key={sticker} type="button" onClick={() => void handleSend("sticker", sticker)} className="rounded-xl bg-white/[0.035] p-3 text-4xl hover:bg-white/[0.08]">{sticker}</button>)}</div>
                         </div>
@@ -1505,7 +1505,7 @@ export function WorkspaceShell() {
                         {recording ? (
                           <div className="flex min-h-[46px] flex-1 items-center gap-3 rounded-3xl border border-rose-500/25 bg-rose-500/10 px-4"><span className="h-2.5 w-2.5 animate-pulse rounded-full bg-rose-400" /><span className="text-sm text-rose-200">Recording {Math.floor(recordingSeconds / 60)}:{String(recordingSeconds % 60).padStart(2, "0")}</span><span className="ml-auto text-xs text-slate-500">Tap stop to send</span></div>
                         ) : (
-                          <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void handleSend(); } }} rows={1} placeholder="Message" className="max-h-32 min-h-[46px] flex-1 resize-none rounded-3xl border border-white/10 bg-[#102438] px-4 py-3 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-500/30" />
+                          <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void handleSend(); } }} rows={1} placeholder="Message" className="max-h-32 min-h-[46px] flex-1 resize-none rounded-3xl border border-white/10 bg-[var(--ychat-input)] px-4 py-3 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-500/30" />
                         )}
 
                         {recording ? (
@@ -1519,7 +1519,7 @@ export function WorkspaceShell() {
                     </div>
                   </>
                 ) : (
-                  <div className="relative flex h-full flex-1 items-center justify-center overflow-hidden bg-[#06101d]">
+                  <div className="relative flex h-full flex-1 items-center justify-center overflow-hidden bg-[var(--ychat-bg)]">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(34,211,238,0.08),_transparent_45%)]" />
                     <div className="relative max-w-lg px-8 text-center"><Image src="/icon-192.png" alt="Ychat" width={96} height={96} className="mx-auto rounded-3xl shadow-2xl" /><h1 className="mt-6 text-3xl font-semibold">Ychat</h1><p className="mt-3 text-sm leading-6 text-slate-500">Realtime text, voice messages, files, group chats, voice calls and video calls in one secure workspace.</p><div className="mx-auto mt-6 flex w-fit items-center gap-2 rounded-full border border-emerald-400/15 bg-emerald-400/5 px-3 py-1.5 text-xs text-emerald-300"><Wifi className="h-3.5 w-3.5" /> Realtime connected</div></div>
                   </div>
@@ -1534,30 +1534,30 @@ export function WorkspaceShell() {
 
           {view === "groups" && (
             <Page title="Groups" subtitle="Create team and family group chats with group voice/video calling." action={<button type="button" onClick={() => setGroupOpen(true)} className="flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950"><Plus className="h-4 w-4" /> New group</button>}>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{groupConversations.map((conversation) => <button type="button" key={conversation.id} onClick={() => selectConversation(conversation.id)} className="rounded-2xl border border-white/10 bg-[#0a1b2d] p-5 text-left hover:border-cyan-400/25"><div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500/15 text-cyan-200"><Users className="h-5 w-5" /></div><p className="mt-4 font-semibold">{getConversationName(conversation)}</p><p className="mt-1 text-sm text-slate-500">{conversation.conversation_members?.length ?? 0} members</p><div className="mt-4 flex gap-2 text-xs text-slate-400"><span className="rounded-full bg-white/5 px-2 py-1">Text</span><span className="rounded-full bg-white/5 px-2 py-1">Voice</span><span className="rounded-full bg-white/5 px-2 py-1">Video</span></div></button>)}</div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{groupConversations.map((conversation) => <button type="button" key={conversation.id} onClick={() => selectConversation(conversation.id)} className="rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-5 text-left hover:border-cyan-400/25"><div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500/15 text-cyan-200"><Users className="h-5 w-5" /></div><p className="mt-4 font-semibold">{getConversationName(conversation)}</p><p className="mt-1 text-sm text-slate-500">{conversation.conversation_members?.length ?? 0} members</p><div className="mt-4 flex gap-2 text-xs text-slate-400"><span className="rounded-full bg-white/5 px-2 py-1">Text</span><span className="rounded-full bg-white/5 px-2 py-1">Voice</span><span className="rounded-full bg-white/5 px-2 py-1">Video</span></div></button>)}</div>
               {groupConversations.length === 0 && <Empty icon={<Users className="h-8 w-8" />} title="No groups yet" text="Create a group and add multiple members." />}
             </Page>
           )}
 
           {view === "people" && (
             <Page title="Contacts" subtitle={`${otherProfiles.length} Ychat contacts`} action={<button type="button" onClick={() => setManualContactOpen(true)} className="flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950"><Plus className="h-4 w-4" /> Add contact</button>}>
-              <div className="mb-5 rounded-2xl border border-white/10 bg-[#0a1b2d] p-4">
+              <div className="mb-5 rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-4">
                 <p className="text-sm font-semibold">Add a contact</p>
                 <p className="mt-1 text-xs text-slate-500">Search by email, username, Ychat ID, or pick from your phonebook. Only people using Ychat are shown.</p>
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-                  <input ref={contactLookupRef} value={contactLookup} onChange={(event) => setContactLookup(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void handleAddContact(); }} placeholder="Email, username or Ychat ID" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-500/30" />
+                  <input ref={contactLookupRef} value={contactLookup} onChange={(event) => setContactLookup(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void handleAddContact(); }} placeholder="Email, username or Ychat ID" className="min-w-0 flex-1 rounded-xl border border-white/10 bg-[var(--ychat-input)] px-3 py-2.5 text-sm outline-none placeholder:text-slate-500 focus:border-cyan-500/30" />
                   <button type="button" onClick={() => void handlePickPhoneContact()} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-300 hover:border-cyan-400/30 hover:text-cyan-200">Phonebook</button>
                   <button type="button" onClick={() => void handleAddContact()} disabled={!contactLookup.trim() || addingContact} className="rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950 disabled:opacity-40">{addingContact ? "Adding..." : "Add contact"}</button>
                 </div>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{otherProfiles.map((profile) => <button type="button" key={profile.id} onClick={() => void handleStartChat(profile.id)} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-[#0a1b2d] p-4 text-left hover:border-cyan-400/25"><div className="relative"><Avatar profile={profile} size="lg" />{isProfileOnline(profile) && <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-[#0a1b2d] bg-emerald-400" />}</div><div className="min-w-0 flex-1"><p className="truncate font-semibold">{profile.display_name}</p><p className="truncate text-sm text-slate-500">@{profile.username || "user"}</p><p className={`mt-1 text-xs ${isProfileOnline(profile) ? "text-emerald-400" : "text-slate-600"}`}>{isProfileOnline(profile) ? "online" : "offline"}</p></div><MessageCircle className="h-5 w-5 text-cyan-300" /></button>)}</div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{otherProfiles.map((profile) => <button type="button" key={profile.id} onClick={() => void handleStartChat(profile.id)} className="flex items-center gap-4 rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-4 text-left hover:border-cyan-400/25"><div className="relative"><Avatar profile={profile} size="lg" />{isProfileOnline(profile) && <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-[#0a1b2d] bg-emerald-400" />}</div><div className="min-w-0 flex-1"><p className="truncate font-semibold">{profile.display_name}</p><p className="truncate text-sm text-slate-500">@{profile.username || "user"}</p><p className={`mt-1 text-xs ${isProfileOnline(profile) ? "text-emerald-400" : "text-slate-600"}`}>{isProfileOnline(profile) ? "online" : "offline"}</p></div><MessageCircle className="h-5 w-5 text-cyan-300" /></button>)}</div>
               {otherProfiles.length === 0 && <Empty icon={<Users className="h-8 w-8" />} title="No contacts yet" text="Share your Ychat ID or add someone by email, username, or ID." />}
             </Page>
           )}
 
           {view === "files" && (
             <Page title="Files" subtitle="Shared files and voice recordings from your conversations.">
-              <div className="space-y-2">{attachments.map((attachment) => <div key={attachment.id} className="rounded-2xl border border-white/10 bg-[#0a1b2d] p-2"><AttachmentPlayer attachment={attachment} /></div>)}</div>
+              <div className="space-y-2">{attachments.map((attachment) => <div key={attachment.id} className="rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-2"><AttachmentPlayer attachment={attachment} /></div>)}</div>
               {attachments.length === 0 && <Empty icon={<Files className="h-8 w-8" />} title="No shared files" text="Files and voice recordings shared in chats will appear here." />}
             </Page>
           )}
@@ -1565,14 +1565,14 @@ export function WorkspaceShell() {
           {view === "admin" && (
             <Page title="Admin" subtitle="Workspace overview and operating status.">
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Stat icon={<Users className="h-5 w-5" />} label="Users" value={profiles.length} /><Stat icon={<MessageSquare className="h-5 w-5" />} label="Conversations" value={conversations.length} /><Stat icon={<Group className="h-5 w-5" />} label="Groups" value={groupConversations.length} /><Stat icon={<HardDriveUpload className="h-5 w-5" />} label="Files" value={attachments.length} /></div>
-              <div className="mt-6 rounded-2xl border border-white/10 bg-[#0a1b2d] p-5"><div className="flex items-center gap-3"><ShieldCheck className="h-6 w-6 text-emerald-300" /><div><p className="font-semibold">Realtime workspace operational</p><p className="text-sm text-slate-500">Supabase authentication, database, storage and realtime channels are connected.</p></div></div></div>
+              <div className="mt-6 rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-5"><div className="flex items-center gap-3"><ShieldCheck className="h-6 w-6 text-emerald-300" /><div><p className="font-semibold">Realtime workspace operational</p><p className="text-sm text-slate-500">Supabase authentication, database, storage and realtime channels are connected.</p></div></div></div>
             </Page>
           )}
 
           {view === "settings" && (
             <Page title="Settings" subtitle="App, notifications and account controls.">
               <div className="mx-auto max-w-3xl space-y-4">
-                <div className="rounded-2xl border border-white/10 bg-[#0a1b2d] p-5">
+                <div className="rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-5">
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
                     <button type="button" onClick={() => avatarInputRef.current?.click()} className="group relative w-fit rounded-full" title="Change profile photo">
                       <Avatar profile={currentProfile} size="lg" />
@@ -1580,8 +1580,8 @@ export function WorkspaceShell() {
                     </button>
                     <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
                     <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
-                      <label className="text-xs text-slate-400"><span className="mb-1.5 block">Display name</span><input value={profileName} onChange={(event) => setProfileName(event.target.value)} className="w-full rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-cyan-500/40" /></label>
-                      <label className="text-xs text-slate-400"><span className="mb-1.5 block">Username</span><input value={profileUsername} onChange={(event) => setProfileUsername(event.target.value)} className="w-full rounded-xl border border-white/10 bg-[#102438] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-cyan-500/40" placeholder="username" /></label>
+                      <label className="text-xs text-slate-400"><span className="mb-1.5 block">Display name</span><input value={profileName} onChange={(event) => setProfileName(event.target.value)} className="w-full rounded-xl border border-white/10 bg-[var(--ychat-input)] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-cyan-500/40" /></label>
+                      <label className="text-xs text-slate-400"><span className="mb-1.5 block">Username</span><input value={profileUsername} onChange={(event) => setProfileUsername(event.target.value)} className="w-full rounded-xl border border-white/10 bg-[var(--ychat-input)] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-cyan-500/40" placeholder="username" /></label>
                     </div>
                     <div className="flex flex-col gap-2 sm:w-auto">
                       <button type="button" onClick={() => avatarInputRef.current?.click()} disabled={profileSaving} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-200 disabled:opacity-40">Change photo</button>
@@ -1590,7 +1590,7 @@ export function WorkspaceShell() {
                   </div>
                   <p className="mt-3 text-xs text-slate-500">Tap your avatar to change your profile picture. Your name and photo update across chats and groups.</p>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-[#0a1b2d] p-5">
+                <div className="rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-5">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-200"><Sparkles className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1"><p className="font-medium">Appearance</p><p className="mt-1 text-sm leading-5 text-slate-500">System follows your iPhone/iPad Light or Dark setting. You can also choose a fixed appearance.</p></div>
@@ -1598,7 +1598,7 @@ export function WorkspaceShell() {
                   </div>
                 </div>
                 <SettingRow icon={<Building2 className="h-5 w-5" />} title="Install Ychat" text="Install Ychat on supported browsers. The native iOS/Android app uses the installed application directly." action={<button type="button" onClick={() => void installPwa()} className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950">{installReady ? "Install" : "Install web app"}</button>} />
-                <div className="rounded-2xl border border-white/10 bg-[#0a1b2d] p-5">
+                <div className="rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-5">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-200"><MessageCircle className="h-5 w-5" /></div>
                     <div className="min-w-0 flex-1">
@@ -1616,7 +1616,7 @@ export function WorkspaceShell() {
                 <SettingRow icon={<Video className="h-5 w-5" />} title="Calling" text="Voice/video calls use encrypted browser WebRTC media with Supabase realtime signaling. HTTPS is required outside localhost." />
                 <SettingRow icon={<HardDriveUpload className="h-5 w-5" />} title="Storage and media" text="Clear local call history, archived-chat state and cached PWA media on this device." action={<button type="button" onClick={() => void clearLocalStorageAndMedia()} className="rounded-xl border border-white/10 px-4 py-2 text-sm">Clear</button>} />
                 <SettingRow icon={<LogOut className="h-5 w-5" />} title="Sign out" text="End this browser session." action={<button type="button" onClick={() => void handleLogout()} className="rounded-xl bg-rose-500/15 px-4 py-2 text-sm font-medium text-rose-300">Logout</button>} />
-                <div className="rounded-2xl border border-white/10 bg-[#0a1b2d] p-5 text-sm text-slate-400">
+                <div className="rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-5 text-sm text-slate-400">
                   <div className="flex flex-wrap gap-4">
                     <Link href="/terms" className="hover:text-white">Terms</Link>
                     <Link href="/privacy" className="hover:text-white">Privacy</Link>
@@ -1628,7 +1628,7 @@ export function WorkspaceShell() {
             </Page>
           )}
 
-          <nav className="grid h-[calc(64px+env(safe-area-inset-bottom))] grid-cols-6 shrink-0 border-t border-white/10 bg-[#07111f] pb-[env(safe-area-inset-bottom)] lg:hidden">
+          <nav className="grid h-[calc(64px+env(safe-area-inset-bottom))] grid-cols-6 shrink-0 border-t border-white/10 bg-[var(--ychat-surface)] pb-[env(safe-area-inset-bottom)] lg:hidden">
             {mobileNavItems.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => navigateView(id)} className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] leading-tight ${view === id ? "text-cyan-300" : "text-slate-500"}`}><Icon className="h-5 w-5" /><span className="max-w-full truncate">{label}</span></button>)}
           </nav>
         </main>
@@ -1638,7 +1638,7 @@ export function WorkspaceShell() {
 }
 
 function Page({ title, subtitle, action, children }: { title: string; subtitle: string; action?: ReactNode; children: ReactNode }) {
-  return <div className="min-h-0 flex-1 overflow-y-auto bg-[#06101d] p-4 pb-24 pt-[max(1rem,env(safe-area-inset-top))] sm:p-6 lg:p-8"><div className="mx-auto max-w-6xl"><div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row"><div className="min-w-0"><h1 className="text-2xl font-semibold">{title}</h1><p className="mt-1 text-sm text-slate-500">{subtitle}</p></div>{action}</div>{children}</div></div>;
+  return <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--ychat-bg)] p-4 pb-24 pt-[max(1rem,env(safe-area-inset-top))] sm:p-6 lg:p-8"><div className="mx-auto max-w-6xl"><div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row"><div className="min-w-0"><h1 className="text-2xl font-semibold">{title}</h1><p className="mt-1 text-sm text-slate-500">{subtitle}</p></div>{action}</div>{children}</div></div>;
 }
 
 function Empty({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
@@ -1646,9 +1646,9 @@ function Empty({ icon, title, text }: { icon: ReactNode; title: string; text: st
 }
 
 function Stat({ icon, label, value }: { icon: ReactNode; label: string; value: number }) {
-  return <div className="rounded-2xl border border-white/10 bg-[#0a1b2d] p-5"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-200">{icon}</div><p className="mt-5 text-3xl font-semibold">{value}</p><p className="mt-1 text-sm text-slate-500">{label}</p></div>;
+  return <div className="rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-5"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-200">{icon}</div><p className="mt-5 text-3xl font-semibold">{value}</p><p className="mt-1 text-sm text-slate-500">{label}</p></div>;
 }
 
 function SettingRow({ icon, title, text, action }: { icon: ReactNode; title: string; text: string; action?: ReactNode }) {
-  return <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-[#0a1b2d] p-5 sm:flex-row sm:items-center"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-200">{icon}</div><div className="min-w-0 flex-1"><p className="font-medium">{title}</p><p className="mt-1 text-sm leading-5 text-slate-500">{text}</p></div>{action}</div>;
+  return <div className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-5 sm:flex-row sm:items-center"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-200">{icon}</div><div className="min-w-0 flex-1"><p className="font-medium">{title}</p><p className="mt-1 text-sm leading-5 text-slate-500">{text}</p></div>{action}</div>;
 }
