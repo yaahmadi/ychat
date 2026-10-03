@@ -1510,17 +1510,11 @@ export function WorkspaceShell() {
                                 {message.message_type === "sticker" || STICKERS.includes(message.body) ? <div className="px-2 py-1 text-5xl leading-none">{message.body}</div> : message.message_type === "voice" && attachment ? <AttachmentPlayer attachment={attachment} /> : message.message_type === "file" && attachment ? <AttachmentPlayer attachment={attachment} compact /> : <p className="whitespace-pre-wrap break-words text-[14px] leading-5">{message.body}</p>}
                                 <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-500"><span>{formatTime(message.created_at)}</span>{message.edited_at && <span>edited</span>}{mine && <span className="text-cyan-600">✓✓</span>}</div>
                                 {reactions.length > 0 && <div className="mt-1 flex flex-wrap justify-end gap-1">{Array.from(reactionByEmoji.entries()).map(([emoji, count]) => <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-full border border-white/15 bg-black/20 px-2 py-0.5 text-xs hover:bg-white/10">{emoji}{count > 1 ? ` ${count}` : ""}</button>)}</div>}
-                                <div className="mt-1 flex justify-end">
-                                  <button
-                                    type="button"
-                                    {mine && message.message_type === "text" && (
-  <button type="button" aria-label="Edit message" title="Edit" onClick={() => beginEditMessage(message)} className="rounded-full px-1.5 py-1 text-[10px] font-semibold text-slate-400 hover:bg-black/5 hover:text-cyan-700 dark:hover:bg-white/10 dark:hover:text-cyan-200">Edit</button>
-)}
-                                     aria-label="Reply to message"
-                                    title="Reply"
-                                    onClick={() => setReplyToMessageId((current) => current === message.id ? null : message.id)}
-                                    className="rounded-full p-1 text-slate-400 hover:bg-black/5 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white"
-                                  >
+                                <div className="mt-1 flex justify-end gap-1">
+                                  {mine && message.message_type === "text" && (
+                                    <button type="button" aria-label="Edit message" title="Edit" onClick={() => beginEditMessage(message)} className="rounded-full px-1.5 py-1 text-[10px] font-semibold text-slate-400 hover:bg-black/5 hover:text-cyan-700 dark:hover:bg-white/10 dark:hover:text-cyan-200">Edit</button>
+                                  )}
+                                  <button type="button" aria-label="Reply to message" title="Reply" onClick={() => setReplyToMessageId((current) => current === message.id ? null : message.id)} className="rounded-full p-1 text-slate-400 hover:bg-black/5 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white">
                                     <MessageSquareReply className="h-3.5 w-3.5" />
                                   </button>
                                 </div>
