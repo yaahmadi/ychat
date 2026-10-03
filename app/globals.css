@@ -387,16 +387,42 @@ html[data-theme="light"] .ychat-app-shell .border-white\/\[0\.055\] {
 html[data-theme="light"] .ychat-app-shell .text-slate-100,
 html[data-theme="light"] .ychat-app-shell .text-slate-200,
 html[data-theme="light"] .ychat-app-shell .text-slate-300 {
-  color: var(--ychat-text) !important;
+  color: #0f172a !important;
 }
 
 html[data-theme="light"] .ychat-app-shell .text-slate-400 {
-  color: var(--ychat-text-2) !important;
+  color: #334155 !important;
 }
 
-html[data-theme="light"] .ychat-app-shell .text-slate-500,
+html[data-theme="light"] .ychat-app-shell .text-slate-500 {
+  color: #475569 !important;
+}
+
 html[data-theme="light"] .ychat-app-shell .text-slate-600 {
-  color: var(--ychat-text-3) !important;
+  color: #334155 !important;
+}
+
+/* Strong readable text on the light UI. Keep deliberate white text on accent/message surfaces. */
+html[data-theme="light"] .ychat-app-shell [class~="text-white"] {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .ychat-app-shell [class~="bg-[#075e72]"] {
+  color: #ffffff !important;
+}
+
+html[data-theme="light"] .ychat-app-shell [class~="bg-[#075e72]"] [class~="text-white"] {
+  color: #ffffff !important;
+}
+
+html[data-theme="light"] .ychat-app-shell input,
+html[data-theme="light"] .ychat-app-shell textarea {
+  color: #0f172a !important;
+}
+
+html[data-theme="light"] .ychat-app-shell input::placeholder,
+html[data-theme="light"] .ychat-app-shell textarea::placeholder {
+  color: #64748b !important;
 }
 
 html[data-theme="light"] .ychat-app-shell .bg-white\/5 {
