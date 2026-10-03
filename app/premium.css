@@ -1,0 +1,257 @@
+/* Ychat Premium UI v2 */
+:root {
+  --ychat-premium-cyan: #08a9c4;
+  --ychat-premium-blue: #3b82f6;
+  --ychat-premium-indigo: #6366f1;
+}
+
+.ychat-app-shell {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(8,169,196,.08), transparent 28%),
+    radial-gradient(circle at 88% 12%, rgba(99,102,241,.07), transparent 26%),
+    var(--ychat-bg) !important;
+  isolation: isolate;
+}
+
+.ychat-app-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 20% 80%, rgba(8,169,196,.045), transparent 24%),
+    radial-gradient(circle at 85% 70%, rgba(59,130,246,.04), transparent 24%);
+}
+
+.ychat-sidebar {
+  width: 92px !important;
+  margin: 10px 0 10px 10px;
+  border: 1px solid var(--ychat-border) !important;
+  border-radius: 24px;
+  box-shadow: 0 18px 50px rgba(15,23,42,.08), inset 0 1px 0 rgba(255,255,255,.65);
+}
+
+html[data-theme="dark"] .ychat-sidebar {
+  box-shadow: 0 22px 60px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.ychat-sidebar > div:first-child > button {
+  border-radius: 18px !important;
+  background: linear-gradient(135deg, rgba(8,169,196,.13), rgba(99,102,241,.10)) !important;
+  box-shadow: 0 10px 28px rgba(8,169,196,.10);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.ychat-sidebar > div:first-child > button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(8,169,196,.17);
+}
+
+.ychat-sidebar nav button {
+  min-height: 58px;
+  border: 1px solid transparent;
+  transition: transform .18s ease, background .18s ease, border-color .18s ease, color .18s ease, box-shadow .18s ease;
+}
+
+html[data-theme="light"] .ychat-sidebar nav button:not([class*="bg-cyan-500"]):hover {
+  color: #0f172a !important;
+  background: rgba(15,23,42,.045) !important;
+  border-color: rgba(15,23,42,.06);
+}
+
+html[data-theme="light"] .ychat-sidebar nav button[class*="bg-cyan-500"] {
+  background: linear-gradient(135deg, rgba(8,169,196,.16), rgba(59,130,246,.10)) !important;
+  color: #087e96 !important;
+  border-color: rgba(8,169,196,.16);
+  box-shadow: 0 8px 22px rgba(8,169,196,.10);
+}
+
+html[data-theme="dark"] .ychat-sidebar nav button[class*="bg-cyan-500"] {
+  background: linear-gradient(135deg, rgba(34,211,238,.16), rgba(59,130,246,.12)) !important;
+  box-shadow: 0 10px 28px rgba(34,211,238,.08);
+}
+
+.ychat-main {
+  margin: 10px;
+  border: 1px solid var(--ychat-border);
+  border-radius: 26px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(15,23,42,.055);
+}
+
+html[data-theme="dark"] .ychat-main {
+  box-shadow: 0 24px 70px rgba(0,0,0,.28);
+}
+
+.ychat-main .rounded-2xl,
+.ychat-main .rounded-3xl {
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease, background-color .18s ease;
+}
+
+html[data-theme="light"] .ychat-main .rounded-2xl,
+html[data-theme="light"] .ychat-main .rounded-3xl {
+  border-color: rgba(15,23,42,.075) !important;
+}
+
+html[data-theme="light"] .ychat-main .rounded-2xl:hover,
+html[data-theme="light"] .ychat-main .rounded-3xl:hover {
+  border-color: rgba(8,169,196,.16) !important;
+}
+
+.ychat-main button:not(:disabled) {
+  transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease, border-color .16s ease, color .16s ease;
+}
+
+.ychat-main button:not(:disabled):active {
+  transform: scale(.975);
+}
+
+.ychat-main [class*="bg-cyan-500"] {
+  background-image: linear-gradient(135deg, #09b8d1, #168fe0) !important;
+  box-shadow: 0 8px 22px rgba(8,155,179,.18);
+}
+
+.ychat-main [class*="bg-cyan-500"]:hover {
+  filter: brightness(1.035);
+  box-shadow: 0 11px 28px rgba(8,155,179,.24);
+}
+
+html[data-theme="dark"] .ychat-main [class*="bg-cyan-500"] {
+  background-image: linear-gradient(135deg, #22d3ee, #3b82f6) !important;
+  color: #06101d !important;
+}
+
+.ychat-main input,
+.ychat-main textarea,
+.ychat-main select {
+  border-radius: 16px !important;
+  border-color: rgba(15,23,42,.09) !important;
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+html[data-theme="light"] .ychat-main input:focus,
+html[data-theme="light"] .ychat-main textarea:focus,
+html[data-theme="light"] .ychat-main select:focus {
+  border-color: rgba(8,169,196,.42) !important;
+  box-shadow: 0 0 0 4px rgba(8,169,196,.08);
+}
+
+.ychat-chat-wallpaper {
+  background-color: var(--ychat-bg) !important;
+  background-image:
+    radial-gradient(circle at 20px 20px, rgba(8,169,196,.045) 1px, transparent 1.2px),
+    radial-gradient(circle at 80px 65px, rgba(99,102,241,.035) 1px, transparent 1.2px) !important;
+  background-size: 100px 100px, 140px 140px !important;
+}
+
+html[data-theme="light"] .ychat-chat-wallpaper {
+  background-color: #f8fbfd !important;
+}
+
+.ychat-app-shell nav:last-child {
+  border-top-color: var(--ychat-border) !important;
+}
+
+@media (max-width: 1023px) {
+  .ychat-main {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .ychat-app-shell > .mx-auto {
+    max-width: none !important;
+  }
+
+  .ychat-app-shell nav:last-child {
+    margin: 0 10px 10px;
+    width: calc(100% - 20px);
+    border: 1px solid var(--ychat-border) !important;
+    border-radius: 22px;
+    box-shadow: 0 14px 38px rgba(15,23,42,.12);
+    overflow: hidden;
+  }
+
+  html[data-theme="light"] .ychat-app-shell nav:last-child {
+    background: rgba(255,255,255,.92) !important;
+  }
+
+  html[data-theme="dark"] .ychat-app-shell nav:last-child {
+    background: rgba(10,27,45,.94) !important;
+  }
+
+  .ychat-app-shell nav:last-child button {
+    min-height: 62px;
+    position: relative;
+  }
+
+  .ychat-app-shell nav:last-child button[class*="text-cyan"]::before {
+    content: "";
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    width: 24px;
+    height: 3px;
+    transform: translateX(-50%);
+    border-radius: 99px;
+    background: linear-gradient(90deg, #08a9c4, #6366f1);
+    box-shadow: 0 3px 10px rgba(8,169,196,.25);
+  }
+}
+
+@media (min-width: 1024px) {
+  .ychat-app-shell {
+    padding: 0 !important;
+  }
+}
+
+.ychat-theme-option {
+  min-height: 46px;
+  border-radius: 14px !important;
+}
+
+html[data-theme="light"] .ychat-theme-option {
+  background: #f6f9fc;
+  border-color: rgba(15,23,42,.075);
+  color: #475569;
+}
+
+html[data-theme="light"] .ychat-theme-option:hover {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: rgba(8,169,196,.25);
+}
+
+html[data-theme="light"] .ychat-theme-option-active {
+  background: linear-gradient(135deg, rgba(8,169,196,.12), rgba(99,102,241,.08)) !important;
+  color: #087e96 !important;
+  border-color: rgba(8,169,196,.28) !important;
+}
+
+html[data-theme="dark"] .ychat-theme-option-active {
+  background: linear-gradient(135deg, rgba(34,211,238,.14), rgba(99,102,241,.12)) !important;
+  color: #67e8f9 !important;
+}
+
+.ychat-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(8,169,196,.42), rgba(99,102,241,.32));
+}
+
+.ychat-app-shell .shadow-2xl {
+  box-shadow: 0 20px 55px rgba(15,23,42,.12) !important;
+}
+
+html[data-theme="dark"] .ychat-app-shell .shadow-2xl {
+  box-shadow: 0 22px 65px rgba(0,0,0,.32) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ychat-app-shell *,
+  .ychat-app-shell *::before,
+  .ychat-app-shell *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}
