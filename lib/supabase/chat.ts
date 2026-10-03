@@ -573,24 +573,9 @@ export async function uploadVoiceMessage(
   };
 
   try {
-<<<<<<< HEAD
-    return await createAttachmentMessage({
-      conversationId,
-      fileName,
-      filePath: path,
-      mimeType,
-      fileSize: blob.size,
-      messageType: "voice",
-      body: `Voice message â€¢ ${Math.max(1, Math.round(durationMs / 1000))}s`,
-    });
-  } catch (error) {
-    await supabase.storage.from("chat-attachments").remove([path]);
-    throw error;
-=======
     result = await response.json();
   } catch {
     throw new Error(`Voice upload failed with HTTP ${response.status}.`);
->>>>>>> origin/main
   }
 
   if (!response.ok) {
