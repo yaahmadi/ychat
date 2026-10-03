@@ -30,6 +30,8 @@ export function YchatThemeProvider({ children }: { children: React.ReactNode }) 
       const resolved = resolveTheme(value);
       document.documentElement.dataset.theme = resolved;
       document.documentElement.style.colorScheme = resolved;
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", resolved === "dark" ? "#06101d" : "#f5f8fc");
       setResolvedTheme(resolved);
     };
 
@@ -61,6 +63,8 @@ export function YchatThemeProvider({ children }: { children: React.ReactNode }) 
     const resolved = resolveTheme(value);
     document.documentElement.dataset.theme = resolved;
     document.documentElement.style.colorScheme = resolved;
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", resolved === "dark" ? "#06101d" : "#f5f8fc");
     setResolvedTheme(resolved);
   };
 
