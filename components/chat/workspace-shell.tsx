@@ -559,15 +559,17 @@ export function WorkspaceShell() {
     const channel = subscribeToMessageReactions((payload) => {
       const event = payload as { eventType?: string; new?: MessageReactionRow; old?: MessageReactionRow };
       const row = event.new ?? event.old;
-      if (!row || !messageIds.includes(row.message_id)) return;
-      if (event.eventType === "DELETE") {
-        setMessageReactions((current) => current.filter((item) => !(item.message_id === row.message_id && item.user_id === row.user_id)));
-        return;
+      if (!row) return;
+      if (messageIds.includes(row.message_id)) {
+        if (event.eventType === "DELETE") {
+          setMessageReactions((current) => current.filter((item) => !(item.message_id === row.message_id && item.user_id === row.user_id)));
+        } else {
+          setMessageReactions((current) => [
+            ...current.filter((item) => !(item.message_id === row.message_id && item.user_id === row.user_id)),
+            row,
+          ]);
+        }
       }
-      setMessageReactions((current) => [
-        ...current.filter((item) => !(item.message_id === row.message_id && item.user_id === row.user_id)),
-        row,
-      ]);
       if (row.user_id !== userId) {
         void createClient()
           .from("messages")
