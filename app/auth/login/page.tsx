@@ -265,7 +265,7 @@ export default function LoginPage() {
     "w-full rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60";
 
   return (
-    <main className="min-h-dvh overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(8,169,196,0.10),_transparent_38%),#f7fafc] px-2.5 py-2.5 text-slate-900 dark:bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.18),_transparent_35%),#030712] dark:text-slate-100 sm:flex sm:items-center sm:justify-center sm:px-5 sm:py-5">
+    <main className="min-h-dvh overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(8,169,196,0.10),_transparent_38%),#f7fafc] px-2.5 py-2.5 text-slate-900 dark:bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.18),_transparent_35%),#030712] dark:text-[var(--ychat-text)] sm:flex sm:items-center sm:justify-center sm:px-5 sm:py-5">
       <div className="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white/95 shadow-slate-900/10 dark:border-white/10 dark:bg-[#07111f]/95 p-4 shadow-2xl shadow-cyan-950/20 sm:p-5 md:max-w-lg lg:max-w-md">
         <div className="flex items-center gap-2.5">
           <Image
@@ -356,7 +356,7 @@ export default function LoginPage() {
         {method === "email" ? (
           <form onSubmit={handleEmailSubmit} className="mt-3 space-y-2.5">
             {mode === "signup" && (
-              <label className="block text-xs text-slate-300">
+              <label className="block text-xs text-slate-700 dark:text-slate-300">
                 <span className="mb-1 block">Display name</span>
                 <input
                   type="text"
@@ -479,7 +479,7 @@ export default function LoginPage() {
                     setOtp("");
                     setMessage(null);
                   }}
-                  className="w-full py-1 text-xs text-slate-400 hover:text-white"
+                  className="w-full py-1 text-xs text-slate-400 hover:text-slate-900 dark:text-white"
                 >
                   Use a different number
                 </button>
