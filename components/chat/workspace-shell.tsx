@@ -121,6 +121,7 @@ type CallLogEntry = {
   direction: "incoming" | "outgoing" | "missed";
   createdAt: string;
   conversationId?: string;
+  durationSeconds?: number | null;
 };
 
 function initials(name?: string | null) {
@@ -747,6 +748,7 @@ export function WorkspaceShell() {
       title: entry.title,
       mode: entry.mode,
       direction: entry.direction,
+      durationSeconds: entry.durationSeconds ?? null,
     }).then((row) => {
       if (!row) return;
       setCallLogs((current) => current.map((item) => item.id === localId ? {
@@ -768,7 +770,7 @@ export function WorkspaceShell() {
         mode,
         memberIds: conversation.conversation_members?.map((member) => member.user_id) ?? [],
       });
-      logCall({ title, mode, direction: "outgoing", conversationId: conversation.id });
+      // Call history is finalized on hang-up so duration is accurate.
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to start call.");
     }
@@ -776,7 +778,7 @@ export function WorkspaceShell() {
 
   async function acceptIncomingCall() {
     if (call.incomingCall) {
-      logCall({ title: call.incomingCall.conversationTitle, mode: call.incomingCall.mode, direction: "incoming", conversationId: call.incomingCall.conversationId });
+      // Accepted calls are logged when they end so duration is recorded.
     }
     await call.acceptCall();
   }
@@ -1269,7 +1271,19 @@ export function WorkspaceShell() {
           cameraOff={call.cameraOff}
           onToggleMute={call.toggleMute}
           onToggleCamera={call.toggleCamera}
-          onHangUp={() => void call.hangUp()}
+          onHangUp={() => {
+            if (call.activeCall) {
+              const durationSeconds = Math.max(0, Math.floor((Date.now() - call.activeCall.acceptedAt) / 1000));
+              logCall({
+                title: call.activeCall.conversationTitle,
+                mode: call.activeCall.mode,
+                direction: call.activeCall.isCaller ? "outgoing" : "incoming",
+                conversationId: call.activeCall.conversationId,
+                durationSeconds,
+              });
+            }
+            void call.hangUp();
+          }}
           callError={call.callError}
         />
       )}
