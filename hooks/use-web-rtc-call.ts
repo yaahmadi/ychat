@@ -34,6 +34,25 @@ const TURN_URL = process.env.NEXT_PUBLIC_TURN_URL;
 const TURN_USERNAME = process.env.NEXT_PUBLIC_TURN_USERNAME;
 const TURN_CREDENTIAL = process.env.NEXT_PUBLIC_TURN_CREDENTIAL;
 
+let callAudioContext: AudioContext | null = null;
+
+export function unlockCallAudio() {
+  if (typeof window === "undefined") return;
+  try {
+    const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioContextClass) return;
+    callAudioContext ??= new AudioContextClass();
+    if (callAudioContext.state === "suspended") void callAudioContext.resume().catch(() => undefined);
+  } catch {
+    // Browser audio may remain unavailable until a user gesture.
+  }
+}
+
+export function getCallAudioContext() {
+  unlockCallAudio();
+  return callAudioContext;
+}
+
 const ICE_SERVERS: RTCIceServer[] = [
   { urls: "stun:stun.l.google.com:19302" },
   { urls: "stun:stun1.l.google.com:19302" },
@@ -438,6 +457,19 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
     });
     setCameraOff(nextCameraOff);
   }, [cameraOff]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const unlock = () => unlockCallAudio();
+    window.addEventListener("pointerdown", unlock, { passive: true });
+    window.addEventListener("keydown", unlock, { passive: true });
+    window.addEventListener("touchstart", unlock, { passive: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+      window.removeEventListener("touchstart", unlock);
+    };
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) return;
