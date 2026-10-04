@@ -139,12 +139,12 @@ export function IncomingCallCard({
 
   return (
     <div className="fixed inset-0 z-[90] flex flex-col items-center justify-center bg-[var(--ychat-bg)] px-6 text-center text-[var(--ychat-text)] backdrop-blur-xl">
-      <div className="relative flex h-32 w-32 items-center justify-center rounded-full bg-cyan-500/10 text-5xl font-bold text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-200 yama-call-pulse">
+      <div className="relative flex h-32 w-32 items-center justify-center rounded-full bg-cyan-500/10 text-5xl font-bold text-cyan-700 bg-cyan-500/15 text-cyan-700 yama-call-pulse">
         {initials(invite.callerName)}
       </div>
-      <p className="mt-8 text-xs uppercase tracking-[0.22em] text-cyan-700 dark:text-cyan-300">Incoming {invite.mode} call</p>
+      <p className="mt-8 text-xs uppercase tracking-[0.22em] text-cyan-700 text-cyan-700">Incoming {invite.mode} call</p>
       <h2 className="mt-3 max-w-sm truncate text-3xl font-semibold">{invite.callerName}</h2>
-      <p className="mt-2 max-w-sm truncate text-sm text-slate-500 dark:text-slate-400">{invite.conversationTitle}</p>
+      <p className="mt-2 max-w-sm truncate text-sm text-slate-500 text-slate-500">{invite.conversationTitle}</p>
       <div className="mt-12 flex w-full max-w-xs items-center justify-between gap-10">
         <button type="button" onClick={onDecline} className="flex h-16 w-16 items-center justify-center rounded-full bg-rose-500 text-white shadow-lg shadow-rose-950/40">
           <PhoneOff className="h-7 w-7" />
@@ -153,7 +153,7 @@ export function IncomingCallCard({
           {invite.mode === "video" ? <Video className="h-7 w-7" /> : <Phone className="h-7 w-7" />}
         </button>
       </div>
-      <div className="mt-4 flex w-full max-w-xs items-center justify-between px-1 text-xs text-slate-500 dark:text-slate-400">
+      <div className="mt-4 flex w-full max-w-xs items-center justify-between px-1 text-xs text-slate-500 text-slate-500">
         <span>Decline</span>
         <span>Accept</span>
       </div>
@@ -229,20 +229,20 @@ export function ActiveCallOverlay({
     <div className="fixed inset-0 z-[100] flex flex-col bg-[var(--ychat-bg)] text-[var(--ychat-text)] backdrop-blur-xl">
       <header className="flex items-center justify-between border-b border-[var(--ychat-border)] bg-[var(--ychat-surface)] px-5 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-8">
         <div>
-          <p className="text-xs uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-400">{call.mode === "video" ? "Video call" : "Voice call"}</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-cyan-700 text-cyan-700">{call.mode === "video" ? "Video call" : "Voice call"}</p>
           <h2 className="mt-1 max-w-[70vw] truncate text-xl font-semibold">{call.isCaller ? `Calling ${primaryName}` : primaryName}</h2>
           <p className={`mt-1 text-xs ${callError ? "text-rose-300" : "text-slate-400"}`}>{callState}</p>
         </div>
-        <div className="text-right text-xs text-slate-500 dark:text-slate-400">{remotes.length + 1} connected</div>
+        <div className="text-right text-xs text-slate-500 text-slate-500">{remotes.length + 1} connected</div>
       </header>
 
       <div className="relative flex flex-1 items-center justify-center overflow-hidden p-4 sm:p-6">
         {call.mode === "video" ? (
           <div className={`grid h-full w-full max-w-6xl gap-3 ${remotes.length <= 1 ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}>
             {remotes.length === 0 && (
-              <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-[var(--ychat-surface)]">
+              <div className="flex min-h-[320px] items-center justify-center rounded-3xl border border-slate-200 bg-white shadow-sm border-[var(--ychat-border)] bg-[var(--ychat-surface)]">
                 <div className="text-center">
-                  <div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-cyan-500/15 text-4xl font-bold text-cyan-700 dark:text-cyan-200 yama-call-pulse">
+                  <div className="relative mx-auto flex h-28 w-28 items-center justify-center rounded-full bg-cyan-500/15 text-4xl font-bold text-cyan-700 text-cyan-700 yama-call-pulse">
                     {initials(primaryName)}
                   </div>
                   <p className="mt-5 text-lg font-medium">{primaryName}</p>
@@ -260,7 +260,7 @@ export function ActiveCallOverlay({
         ) : (
           <div className="text-center">
             <div className="text-center">
-              <div className="relative mx-auto flex h-36 w-36 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/25 to-blue-500/15 text-5xl font-bold text-cyan-700 dark:text-cyan-200 yama-call-pulse">
+              <div className="relative mx-auto flex h-36 w-36 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500/25 to-blue-500/15 text-5xl font-bold text-cyan-700 text-cyan-700 yama-call-pulse">
                 {initials(primaryName)}
               </div>
               <p className="mt-5 text-2xl font-semibold">{primaryName}</p>
@@ -269,7 +269,7 @@ export function ActiveCallOverlay({
             <div className="mt-8 flex flex-wrap items-center justify-center gap-5">
             {otherIds.map((id) => (
               <div key={id} className="text-center">
-                <div className={`mx-auto flex h-24 w-24 items-center justify-center rounded-full border text-2xl font-semibold ${remoteStreams[id] ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200" : "border-white/10 bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-400"}`}>
+                <div className={`mx-auto flex h-24 w-24 items-center justify-center rounded-full border text-2xl font-semibold ${remoteStreams[id] ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200" : "border-white/10 bg-slate-100 text-slate-500 bg-slate-100 text-slate-500"}`}>
                   {initials(profileName(id))}
                 </div>
                 <p className="mt-3 text-sm">{profileName(id)}</p>
@@ -322,16 +322,16 @@ export function ActiveCallOverlay({
       )}
 
       <footer className="flex items-center justify-center gap-3 border-t border-white/10 bg-[var(--ychat-surface)]/95 px-3 py-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:gap-4 sm:px-4 sm:py-5">
-        <button type="button" onClick={() => { playTone(muted ? 620 : 360, 90); onToggleMute(); }} className={`flex h-12 w-12 items-center justify-center rounded-full border ${muted ? "border-rose-400/40 bg-rose-500/20 text-rose-300" : "border-slate-200 bg-slate-100 text-slate-700 dark:border-white/10 dark:bg-white/10 dark:text-white"}`} aria-label="Toggle microphone" title="Mute">
+        <button type="button" onClick={() => { playTone(muted ? 620 : 360, 90); onToggleMute(); }} className={`flex h-12 w-12 items-center justify-center rounded-full border ${muted ? "border-rose-400/40 bg-rose-500/20 text-rose-300" : "border-slate-200 bg-slate-100 text-slate-700 border-[var(--ychat-border)] bg-slate-100 text-[var(--ychat-text)]"}`} aria-label="Toggle microphone" title="Mute">
           {muted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
         </button>
-        <button type="button" onClick={() => { playTone(520, 90); setAudioMenuOpen((current) => !current); }} className="flex h-12 min-w-12 items-center justify-center rounded-full border border-white/10 bg-slate-100 px-3 text-slate-700 dark:bg-white/10 dark:text-white" aria-label="Audio output" title={audioOutputLabel}>
+        <button type="button" onClick={() => { playTone(520, 90); setAudioMenuOpen((current) => !current); }} className="flex h-12 min-w-12 items-center justify-center rounded-full border border-white/10 bg-slate-100 px-3 text-slate-700 bg-slate-100 text-[var(--ychat-text)]" aria-label="Audio output" title={audioOutputLabel}>
           <Volume2 className="h-5 w-5" />
         </button>
         <button type="button" onClick={() => { playTone(460, 90); setKeypadOpen((current) => !current); }} className={`flex h-12 w-12 items-center justify-center rounded-full border ${keypadOpen ? "border-cyan-400/40 bg-cyan-500/20 text-cyan-200" : "border-white/10 bg-white/10 text-white"}`} aria-label="Dial pad" title="Keypad">
           <Keyboard className="h-5 w-5" />
         </button>
-        <button type="button" onClick={() => playTone(560, 90)} className="hidden h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-slate-100 text-slate-700 sm:flex dark:bg-white/10 dark:text-white" aria-label="Add contact" title="Add contact">
+        <button type="button" onClick={() => playTone(560, 90)} className="hidden h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-slate-100 text-slate-700 sm:flex bg-slate-100 text-[var(--ychat-text)]" aria-label="Add contact" title="Add contact">
           <UserPlus className="h-5 w-5" />
         </button>
         <button type="button" onClick={() => playTone(580, 90)} className="hidden h-12 w-12 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white sm:flex" aria-label="Merge call" title="Merge call">
