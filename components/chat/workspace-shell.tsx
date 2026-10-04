@@ -1392,7 +1392,7 @@ export function WorkspaceShell() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold">{item.title}</p>
-                      <p className={`mt-0.5 text-xs ${item.direction === "missed" ? "text-rose-300" : "text-slate-500"}`}>{item.direction === "outgoing" ? "Outgoing" : item.direction === "incoming" ? "Incoming" : "Missed"} {item.mode} call · {formatTime(item.createdAt)}</p>
+                      <p className={`mt-0.5 text-xs ${item.direction === "missed" ? "text-rose-300" : "text-slate-500"}`}>{item.direction === "outgoing" ? "Outgoing" : item.direction === "incoming" ? "Incoming" : "Missed"} {item.mode} call · {formatTime(item.createdAt)}{item.durationSeconds ? ` · ${Math.floor(item.durationSeconds / 60)}:${String(item.durationSeconds % 60).padStart(2, "0")}` : ""}</p>
                     </div>
                     <button type="button" onClick={() => void callBack(item)} className="rounded-full p-2 text-cyan-300 hover:bg-white/5" title="Call back"><Phone className="h-4 w-4" /></button>
                     <button type="button" onClick={() => removeCallLog(item.id)} className="rounded-full p-2 text-slate-500 hover:bg-white/5 hover:text-rose-200" title="Delete call"><Trash2 className="h-4 w-4" /></button>
@@ -1536,7 +1536,14 @@ export function WorkspaceShell() {
 
                     <div ref={messagesScrollRef} className="ychat-chat-wallpaper ychat-scrollbar min-h-0 flex-1 overscroll-contain overflow-y-auto px-3 py-5 sm:px-6">
                       <div className="mx-auto max-w-4xl space-y-2">
-                        <div className="mx-auto mb-5 w-fit rounded-lg bg-[var(--ychat-input)]/90 px-3 py-1.5 text-center text-[11px] text-slate-400 shadow">Messages are stored securely in your Ychat workspace.</div>
+                        <div className="mx-auto mb-5 w-fit rounded-lg bg-[var(--ychat-input)]/90 px-3 py-1.5 text-center text-[11px] text-slate-400 shadow">Messages are stored securely in your Ychat workspace.</div>                        {callLogs.filter((item) => item.conversationId === activeConversation.id).slice(0, 8).map((item) => (
+                          <div key={`call-${item.id}`} className="mx-auto flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-[11px] text-slate-600 shadow-sm">
+                            <Phone className={`h-3.5 w-3.5 ${item.direction === "missed" ? "text-rose-500" : "text-cyan-600"}`} />
+                            <span className={item.direction === "missed" ? "font-semibold text-rose-600" : ""}>{item.direction === "missed" ? "Missed call" : item.direction === "incoming" ? "Incoming call" : "Outgoing call"} · {item.mode}{item.durationSeconds ? ` · ${Math.floor(item.durationSeconds / 60)}:${String(item.durationSeconds % 60).padStart(2, "0")}` : ""}</span>
+                            <span>{formatTime(item.createdAt)}</span>
+                          </div>
+                        ))}
+
                         {messages.length === 0 && <div className="py-16 text-center text-sm text-slate-500">No messages yet. Send the first one.</div>}
                         {messages.map((message) => {
                           const mine = message.sender_id === userId;
@@ -1734,6 +1741,9 @@ export function WorkspaceShell() {
                     <div className="w-full sm:w-[360px]"><ThemeSwitcher /></div>
                   </div>
                 </div>
+                <SettingRow icon={<Sparkles className="h-5 w-5" />} title="Help & feedback" text="Get help with Ychat or send feedback about the premium experience." action={<a href="mailto:support@yamaahmadi.fr?subject=Ychat%20Help%20%26%20Feedback" className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Contact</a>} />
+                <SettingRow icon={<Users className="h-5 w-5" />} title="Invite friends" text="Share your Ychat ID or invitation link with people you trust." action={<button type="button" onClick={() => void navigator.clipboard?.writeText(shareText)} className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950">Copy invite</button>} />
+                <SettingRow icon={<Building2 className="h-5 w-5" />} title="Yama brand apps" text="Access Yama Ahmadi's connected apps and services from one place." action={<a href="https://yamaahmadi.fr" target="_blank" rel="noreferrer" className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Open apps</a>} />
                 <SettingRow icon={<Building2 className="h-5 w-5" />} title="Install Ychat" text="Install Ychat on supported browsers. The native iOS/Android app uses the installed application directly." action={<button type="button" onClick={() => void installPwa()} className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950">{installReady ? "Install" : "Install web app"}</button>} />
                 <div className="rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-5">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
@@ -1749,6 +1759,11 @@ export function WorkspaceShell() {
                     <a href={`mailto:?subject=Add me on Ychat&body=${encodeURIComponent(shareText)}`} className="rounded-xl border border-white/10 px-4 py-2 text-center text-sm">Share by email</a>
                   </div>
                 </div>
+                <SettingRow icon={<Users className="h-5 w-5" />} title="Linked devices" text="See the devices currently using your Ychat account and keep this session secure." action={<button type="button" onClick={() => setError("Linked-device management will be connected to your account center before release.")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Manage</button>} />
+                <SettingRow icon={<Sparkles className="h-5 w-5" />} title="Subscription" text="Ychat plan, billing and premium features." action={<button type="button" onClick={() => setError("Subscription management is ready for the billing integration.")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">View plan</button>} />
+                <SettingRow icon={<ShieldCheck className="h-5 w-5" />} title="Privacy" text="Control privacy, story visibility and communication permissions." action={<Link href="/privacy" className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Open</Link>} />
+                <SettingRow icon={<MessageCircle className="h-5 w-5" />} title="Account" text="Your Ychat ID, profile information and account security." action={<button type="button" onClick={() => setError("Account center will use this profile securely.")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Account center</button>} />
+                <SettingRow icon={<HardDriveUpload className="h-5 w-5" />} title="Storage" text="Review local cache and shared media storage." action={<button type="button" onClick={() => void clearLocalStorageAndMedia()} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Manage</button>} />
                 <SettingRow icon={<Bell className="h-5 w-5" />} title="Message and call notifications" text={`Browser permission: ${notificationPermission}`} action={<button type="button" onClick={() => void enableNotifications()} className="rounded-xl border border-white/10 px-4 py-2 text-sm">Enable</button>} />
                 <SettingRow icon={<Video className="h-5 w-5" />} title="Calling" text="Voice/video calls use encrypted browser WebRTC media with Supabase realtime signaling. HTTPS is required outside localhost." />
                 <SettingRow icon={<HardDriveUpload className="h-5 w-5" />} title="Storage and media" text="Clear local call history, archived-chat state and cached PWA media on this device." action={<button type="button" onClick={() => void clearLocalStorageAndMedia()} className="rounded-xl border border-white/10 px-4 py-2 text-sm">Clear</button>} />
