@@ -143,6 +143,35 @@ export async function getConversationUserStates() {
   return { data: (data ?? []) as ConversationUserStateRow[], error };
 }
 
+export async function getUnreadCounts() {
+  const supabase = createClient();
+  const { data, error } = await supabase.rpc("get_conversation_unread_counts");
+  if (isMissingSchemaFunction(error)) return { data: [], error: null };
+  return { data: (data ?? []) as Array<{ conversation_id: string; unread_count: number }>, error };
+}
+
+export async function markConversationRead(conversationId: string) {
+  const supabase = createClient();
+  const { error } = await supabase.rpc("mark_conversation_read", {
+    target_conversation_id: conversationId,
+  });
+  if (isMissingSchemaFunction(error)) return;
+  if (error) throw error;
+}
+
+export async function setConversationFavorite(conversationId: string, favorite: boolean) {
+  const supabase = createClient();
+  const userId = await currentUserId();
+  const { error } = await supabase.from("conversation_user_settings").upsert({
+    user_id: userId,
+    conversation_id: conversationId,
+    favorite_at: favorite ? new Date().toISOString() : null,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: "user_id,conversation_id" });
+  if (isMissingSchemaObject(error)) return;
+  if (error) throw error;
+}
+
 export async function archiveConversations(conversationIds: string[], archived: boolean) {
   if (conversationIds.length === 0) return;
   const supabase = createClient();
