@@ -25,69 +25,69 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">2. Accounts</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">2. Accounts</h2>
             <p className="mt-2">
               You are responsible for providing accurate account information, protecting your credentials and devices, and all activity performed through your account. You must not impersonate another person or misuse another person&apos;s account.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">3. Acceptable use</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">3. Acceptable use</h2>
             <p className="mt-2">
               You must not use Ychat to violate applicable law, abuse or harass others, distribute malware, interfere with the service, attempt unauthorized access, exploit security vulnerabilities, or transmit content you do not have the right to share.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">4. User content</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">4. User content</h2>
             <p className="mt-2">
               You remain responsible for content you submit through Ychat. You grant the limited permissions necessary for Ychat and its service providers to store, process, transmit and display that content solely to operate the service and provide the features you request.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">5. Availability and changes</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">5. Availability and changes</h2>
             <p className="mt-2">
               Ychat may be updated, modified, interrupted or temporarily unavailable. Features may change as the application evolves. We do not guarantee uninterrupted or error-free availability.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">6. Third-party services</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">6. Third-party services</h2>
             <p className="mt-2">
               Ychat may depend on third-party services for hosting, authentication, databases, email, SMS, media, or other infrastructure. Your use of those services may also be subject to their applicable terms and policies.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">7. Suspension or termination</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">7. Suspension or termination</h2>
             <p className="mt-2">
               Access may be suspended or terminated where reasonably necessary to protect Ychat, its users or providers; address abuse or security risks; comply with legal requirements; or enforce these Terms.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">8. Disclaimer and liability</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">8. Disclaimer and liability</h2>
             <p className="mt-2">
               Ychat is provided on an as-available basis to the extent permitted by applicable law. Nothing in these Terms excludes rights or liabilities that cannot legally be excluded or limited.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">9. Privacy</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">9. Privacy</h2>
             <p className="mt-2">
               Our processing of personal information is described in the{" "}
-              <Link href="/privacy" className="text-cyan-300 hover:underline">
+              <Link href="/privacy" className="text-cyan-700 hover:underline dark:text-cyan-300">
                 Ychat Privacy Policy
               </Link>.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">10. Contact</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">10. Contact</h2>
             <p className="mt-2">
               Questions about these Terms may be sent to{" "}
-              <a className="text-cyan-300 hover:underline" href="mailto:support@yamaahmadi.fr">
+              <a className="text-cyan-700 hover:underline dark:text-cyan-300" href="mailto:support@yamaahmadi.fr">
                 support@yamaahmadi.fr
               </a>.
             </p>
