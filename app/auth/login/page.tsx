@@ -260,13 +260,13 @@ export default function LoginPage() {
   }
 
   const inputClass =
-    "w-full rounded-xl border border-white/10 bg-[#0f1d33] px-3.5 py-2.5 text-sm text-slate-100 outline-none transition focus:border-cyan-500";
+    "w-full rounded-xl border border-white/10 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-cyan-500";
   const primaryButtonClass =
     "w-full rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60";
 
   return (
-    <main className="min-h-dvh overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.18),_transparent_35%),#030712] px-2.5 py-2.5 sm:flex sm:items-center sm:justify-center sm:px-5 sm:py-5">
-      <div className="mx-auto w-full max-w-md rounded-2xl border border-white/10 bg-[#07111f]/95 p-4 shadow-2xl shadow-cyan-950/20 sm:p-5 md:max-w-lg lg:max-w-md">
+    <main className="min-h-dvh overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(8,169,196,0.10),_transparent_38%),#f7fafc] px-2.5 py-2.5 text-slate-900 dark:bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.18),_transparent_35%),#030712] dark:text-slate-100 sm:flex sm:items-center sm:justify-center sm:px-5 sm:py-5">
+      <div className="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white/95 shadow-slate-900/10 dark:border-white/10 dark:bg-[#07111f]/95 p-4 shadow-2xl shadow-cyan-950/20 sm:p-5 md:max-w-lg lg:max-w-md">
         <div className="flex items-center gap-2.5">
           <Image
             src="/icon-192.png"
@@ -291,10 +291,10 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-3">
-          <h1 className="text-2xl font-semibold leading-tight text-slate-100 sm:text-[26px]">
+          <h1 className="text-2xl font-semibold leading-tight text-slate-900 sm:text-[26px] dark:text-slate-100">
             {mode === "signin" ? "Welcome back" : "Create account"}
           </h1>
-          <p className="mt-1 text-xs text-slate-400 sm:text-sm">
+          <p className="mt-1 text-xs text-slate-600 sm:text-sm dark:text-slate-400">
             Google, email/password, or mobile number.
           </p>
         </div>
@@ -326,7 +326,7 @@ export default function LoginPage() {
           <div className="h-px flex-1 bg-white/10" />
         </div>
 
-        <div className="grid grid-cols-2 rounded-xl bg-[#0b1728] p-1">
+        <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 dark:bg-[#0b1728]">
           <button
             type="button"
             onClick={() => changeMethod("email")}
