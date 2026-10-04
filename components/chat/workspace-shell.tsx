@@ -1590,17 +1590,17 @@ export function WorkspaceShell() {
                           reactions.forEach((reaction) => reactionByEmoji.set(reaction.reaction, (reactionByEmoji.get(reaction.reaction) ?? 0) + 1));
                           const quoted = message.reply_to_id ? messages.find((item) => item.id === message.reply_to_id) : null;
                           return (
-                            <div key={message.id} id={`ychat-message-${message.id}`} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                              <div className={`group relative max-w-[82%] rounded-[1.15rem] px-3 py-2.5 sm:max-w-[68%] ${mine ? "rounded-br-md border border-cyan-200/80 bg-transparent text-slate-900 shadow-[0_8px_30px_rgba(8,145,178,0.08)] dark:border-cyan-300/25 dark:text-slate-100" : "rounded-bl-md border border-slate-200 bg-white/95 text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/[0.055] dark:bg-slate-900/80 dark:text-slate-100"}`}>
+                            <div key={message.id} id={`ychat-message-${message.id}`} className={`mb-8 flex ${mine ? "justify-end" : "justify-start"}`}>
+                              <div className={`group relative max-w-[82%] rounded-[1.15rem] px-3 py-2 sm:max-w-[68%] ${mine ? "rounded-br-md border border-cyan-200/80 bg-transparent text-slate-900 shadow-[0_8px_30px_rgba(8,145,178,0.08)] dark:border-cyan-300/25 dark:text-slate-100" : "rounded-bl-md border border-slate-200 bg-white/95 text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/[0.055] dark:bg-slate-900/80 dark:text-slate-100"}`}>
                                 {!mine && activeConversation.type === "group" && <p className="mb-1 text-[11px] font-semibold text-cyan-300">{getSenderName(message.sender_id)}</p>}
                                 {quoted && (
                                   <button
                                     type="button"
                                     onClick={() => document.getElementById(`ychat-message-${quoted.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}
-                                    className="mb-2 w-full rounded-xl border-l-2 border-cyan-300/60 bg-black/15 px-2.5 py-1.5 text-left"
+                                    className="mb-2 w-full rounded-xl border-l-2 border-cyan-500/35 bg-slate-100/80 px-2.5 py-1.5 text-left dark:border-cyan-300/60 dark:bg-black/15"
                                   >
-                                    <p className="text-[10px] font-semibold text-cyan-200">{quoted.sender_id === userId ? "You" : getSenderName(quoted.sender_id)}</p>
-                                    <p className="truncate text-[11px] text-white/60">{quoted.message_type === "voice" ? "🎙️ Voice message" : quoted.message_type === "file" ? "📎 File" : quoted.body}</p>
+                                    <p className="text-[10px] font-semibold text-cyan-700 dark:text-cyan-200">{quoted.sender_id === userId ? "You" : getSenderName(quoted.sender_id)}</p>
+                                    <p className="truncate text-[11px] text-slate-500 dark:text-white/60">{quoted.message_type === "voice" ? "🎙️ Voice message" : quoted.message_type === "file" ? "📎 File" : quoted.body}</p>
                                   </button>
                                 )}
                                 {message.message_type === "sticker" || STICKERS.includes(message.body) ? <div className="px-2 py-1 text-5xl leading-none">{message.body}</div> : message.message_type === "voice" && attachment ? <AttachmentPlayer attachment={attachment} /> : message.message_type === "file" && attachment ? <AttachmentPlayer attachment={attachment} compact /> : <p className="whitespace-pre-wrap break-words text-[14px] leading-5">{message.body}</p>}
@@ -1625,15 +1625,15 @@ export function WorkspaceShell() {
                                     Delete selected messages
                                   </button>
                                 )}
-                                <div className="mt-1 flex justify-end gap-1 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
+                                <div className="absolute -bottom-7 left-1 flex items-center gap-1 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
                                   {mine && message.message_type === "text" && (
                                     <button type="button" aria-label="Edit message" title="Edit" onClick={() => beginEditMessage(message)} className="rounded-full px-1.5 py-1 text-[10px] font-semibold text-slate-400 hover:bg-black/5 hover:text-cyan-700 dark:hover:bg-white/10 dark:hover:text-cyan-200">Edit</button>
                                   )}
-                                  <button type="button" aria-label="Reply to message" title="Reply" onClick={() => setReplyToMessageId((current) => current === message.id ? null : message.id)} className="rounded-full p-1 text-slate-400 hover:bg-black/5 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white">
+                                  <button type="button" aria-label="Reply to message" title="Reply" onClick={() => setReplyToMessageId((current) => current === message.id ? null : message.id)} className="rounded-full border border-slate-200 bg-white/90 p-1 text-slate-500 shadow-sm hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-slate-900/80 dark:hover:bg-white/10 dark:hover:text-white">
                                     <MessageSquareReply className="h-3.5 w-3.5" />
                                   </button>
                                 </div>
-                                <div className="relative mt-1 flex justify-end">
+                                <div className="absolute -bottom-7 right-1 flex justify-end">
                                   <button type="button" aria-label="React to message" onClick={() => setReactionPickerMessageId((current) => current === message.id ? null : message.id)} className="rounded-full p-1 text-slate-500 hover:bg-black/5 hover:text-slate-900 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white"><Smile className="h-3.5 w-3.5" /></button>
                                   {reactionPickerMessageId === message.id && <div className={`absolute bottom-7 z-40 flex max-w-[260px] flex-wrap gap-1 rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-2 shadow-2xl ${mine ? "right-0" : "left-0"}`}>{["❤️","👍","😂","😮","😢","😡","👏","🔥","🎉","🙏","💯","🚀"].map((emoji) => <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-lg p-1.5 text-lg hover:bg-white/10">{emoji}</button>)}</div>}
                                 </div>
