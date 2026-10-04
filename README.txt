@@ -16,7 +16,7 @@ After copying, run from the Ychat project root:
   git commit -m "Add public Ychat homepage privacy terms and protected chat route"
   git push
 
-After Vercel deploys, verify:
+After Ubuntu production deploys, verify:
   https://ychat.yamaahmadi.com
   https://ychat.yamaahmadi.com/privacy
   https://ychat.yamaahmadi.com/terms

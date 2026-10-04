@@ -24,7 +24,7 @@ function getRedirectBase() {
     return origin;
   }
 
-  // Production should use the canonical Ychat URL configured in Vercel.
+  // Production uses the canonical Ychat URL: https://ychat.yamaahmadi.com.
   return configured || origin;
 }
 
