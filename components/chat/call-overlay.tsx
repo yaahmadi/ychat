@@ -30,12 +30,60 @@ function playTone(frequency = 520, durationMs = 120) {
     gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + durationMs / 1000);
     oscillator.connect(gain);
     gain.connect(context.destination);
+    void context.resume().catch(() => undefined);
     oscillator.start();
     oscillator.stop(context.currentTime + durationMs / 1000);
-    window.setTimeout(() => void context.close().catch(() => undefined), durationMs + 80);
+    window.setTimeout(() => void context.close().catch(() => undefined), durationMs + 120);
   } catch {
-    // Browser audio output can be blocked until a user gesture.
+    // Audio can still be blocked by browser autoplay policy.
   }
+}
+
+function startRingtone() {
+  let stopped = false;
+  let context: AudioContext | null = null;
+  let timer: number | null = null;
+
+  const beep = () => {
+    if (stopped) return;
+    try {
+      const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      if (!AudioContextClass) return;
+      context ??= new AudioContextClass();
+      const play = async () => {
+        try {
+          if (context?.state === "suspended") await context.resume();
+          if (stopped || !context) return;
+          const now = context.currentTime;
+          const oscillator = context.createOscillator();
+          const gain = context.createGain();
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(520, now);
+          oscillator.frequency.setValueAtTime(680, now + 0.16);
+          gain.gain.setValueAtTime(0.0001, now);
+          gain.gain.exponentialRampToValueAtTime(0.09, now + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+          oscillator.connect(gain);
+          gain.connect(context.destination);
+          oscillator.start(now);
+          oscillator.stop(now + 0.44);
+          timer = window.setTimeout(beep, 1200);
+        } catch {
+          timer = window.setTimeout(beep, 1800);
+        }
+      };
+      void play();
+    } catch {
+      // Browser autoplay policy may prevent audible playback until a gesture.
+    }
+  };
+
+  beep();
+  return () => {
+    stopped = true;
+    if (timer !== null) window.clearTimeout(timer);
+    if (context) void context.close().catch(() => undefined);
+  };
 }
 
 function StreamVideo({ stream, muted = false, sinkId, className = "" }: { stream: MediaStream; muted?: boolean; sinkId?: string; className?: string }) {
@@ -84,6 +132,11 @@ export function IncomingCallCard({
   onAccept: () => void;
   onDecline: () => void;
 }) {
+  useEffect(() => {
+    const stop = startRingtone();
+    return stop;
+  }, []);
+
   return (
     <div className="fixed inset-0 z-[90] flex flex-col items-center justify-center bg-white/95 px-6 text-center text-slate-900 dark:bg-[#020812]/98 dark:text-white backdrop-blur-xl">
       <div className="relative flex h-32 w-32 items-center justify-center rounded-full bg-cyan-500/10 text-5xl font-bold text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-200 yama-call-pulse">
