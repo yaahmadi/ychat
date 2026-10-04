@@ -113,5 +113,7 @@ export type ConversationUserStateRow = {
   deleted_at?: string | null;
   muted_until?: string | null;
   pinned_at?: string | null;
+  favorite_at?: string | null;
+  last_read_at?: string | null;
   updated_at?: string | null;
 };
