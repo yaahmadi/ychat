@@ -25,66 +25,66 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">2. Information we process</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">2. Information we process</h2>
             <p className="mt-2">
               Depending on how you use Ychat, we may process account information such as your name, email address, phone number, profile information, authentication provider identifiers, and information needed to operate your account. We also process content and metadata you choose to submit through Ychat, such as messages, attachments, profile images and story content.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">3. Authentication providers</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">3. Authentication providers</h2>
             <p className="mt-2">
               Ychat may allow sign-in through Google, email/password, and phone-based one-time passwords. These services may process information according to their own privacy policies. Ychat uses Supabase authentication infrastructure and may use an SMS provider for phone verification.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">4. How information is used</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">4. How information is used</h2>
             <p className="mt-2">
               Information is used to authenticate users, provide messaging and communication features, maintain user profiles, protect the service, troubleshoot technical issues, prevent abuse, and operate and improve Ychat.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">5. Sharing and service providers</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">5. Sharing and service providers</h2>
             <p className="mt-2">
               We may use infrastructure and service providers to operate Ychat, including hosting, database, authentication and messaging providers. Information may be processed by those providers only as needed to provide the relevant service or as required by law.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">6. Data security</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">6. Data security</h2>
             <p className="mt-2">
               We use reasonable technical and organizational measures to protect Ychat and its accounts. No internet service can guarantee absolute security, and users should protect their credentials and devices.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">7. Data retention and deletion</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">7. Data retention and deletion</h2>
             <p className="mt-2">
               Information may be retained for as long as necessary to operate Ychat, provide requested functionality, meet legal obligations, resolve disputes, and protect the service. Where supported, account-related information may be deleted or corrected upon a valid request, subject to legal and technical requirements.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">8. Your choices and rights</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">8. Your choices and rights</h2>
             <p className="mt-2">
               Depending on applicable law, you may have rights to request access, correction, deletion, restriction, or other actions concerning personal information associated with your account.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">9. Contact</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">9. Contact</h2>
             <p className="mt-2">
               Privacy and account questions may be sent to{" "}
-              <a className="text-cyan-300 hover:underline" href="mailto:support@yamaahmadi.fr">
+              <a className="text-cyan-700 hover:underline dark:text-cyan-300" href="mailto:support@yamaahmadi.fr">
                 support@yamaahmadi.fr
               </a>.
             </p>
           </section>
 
           <section>
-            <h2 className="text-lg font-semibold text-white">10. Changes</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">10. Changes</h2>
             <p className="mt-2">
               This Privacy Policy may be updated when Ychat, its providers, or applicable requirements change. The effective date above will be updated when material changes are published.
             </p>
