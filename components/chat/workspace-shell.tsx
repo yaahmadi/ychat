@@ -31,6 +31,7 @@ import {
   Send,
   Settings,
   ShieldCheck,
+  Heart,
   Smile,
   Sparkles,
   Square,
@@ -54,6 +55,10 @@ import {
   getContactProfiles,
   getConversationUserStates,
   getConversations,
+  getUnreadCounts,
+  markConversationRead,
+  setConversationFavorite,
+  removeOwnMessages,
   getStories,
   getMessages,
   getMessageReactions,
@@ -341,6 +346,11 @@ export function WorkspaceShell() {
       return [];
     }
   });
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [favoriteConversationIds, setFavoriteConversationIds] = useState<string[]>([]);
+  const [chatFilter, setChatFilter] = useState<"all" | "unread" | "favorites" | "archived">("all");
+  const [messageSelectMode, setMessageSelectMode] = useState(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
 
   async function refreshConversations(preferredId?: string) {
     const { data, error: conversationsError } = await getConversations();
