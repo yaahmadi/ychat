@@ -355,6 +355,18 @@ export async function createGroupConversation(title: string, memberIds: string[]
   return data;
 }
 
+export async function removeOwnMessages(messageIds: string[]) {
+  if (!messageIds.length) return;
+  const supabase = createClient();
+  const userId = await currentUserId();
+  const { error } = await supabase
+    .from("messages")
+    .delete()
+    .in("id", messageIds)
+    .eq("sender_id", userId);
+  if (error) throw error;
+}
+
 export async function getMessageReactions(messageIds: string[]) {
   if (messageIds.length === 0) return { data: [] as MessageReactionRow[], error: null };
   const supabase = createClient();
