@@ -1824,6 +1824,8 @@ export function WorkspaceShell() {
                                 </div>
                               </div>
                             </div>
+                          );
+                        })}
                         <div ref={messagesEndRef} />
                       </div>
                     </div>
