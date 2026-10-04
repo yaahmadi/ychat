@@ -426,6 +426,7 @@ export function WorkspaceShell() {
         conversationId: detail.conversationId,
         durationSeconds: 0,
       });
+      setError(`Missed ${detail.mode === "video" ? "video" : "voice"} call from ${detail.title}`);
       if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
         new Notification("Missed Ychat call", {
           body: `${detail.title} • ${detail.mode === "video" ? "Video" : "Voice"} call`,
