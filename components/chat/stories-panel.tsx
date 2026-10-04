@@ -163,7 +163,9 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
         getStoryViews(story.id),
         getStoryReactions(story.id),
       ]);
-      setViewCount(viewsResult.data?.length ?? 0);
+      const viewRows = viewsResult.data ?? [];
+      setViewCount(viewRows.length);
+      setStoryViewers(viewRows.map((view) => profiles.find((profile) => profile.id === view.user_id)).filter(Boolean) as ProfileRow[]);
       setStoryReactions(reactionsResult.data ?? []);
       if (viewsResult.error) setError(viewsResult.error.message);
       if (reactionsResult.error) setError(reactionsResult.error.message);
@@ -285,6 +287,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
     setComments([]);
     setCommentText("");
     setStoryReactions([]);
+    setStoryViewers([]);
     setViewCount(0);
   }
 
