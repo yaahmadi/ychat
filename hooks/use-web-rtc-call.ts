@@ -98,6 +98,7 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
   const peersRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const pendingIceRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const readyPeersRef = useRef<Set<string>>(new Set());
+  const remoteConnectedRef = useRef(false);
 
   const sendRoom = useCallback(async (event: string, payload: unknown) => {
     if (!roomChannelRef.current) return;
@@ -150,6 +151,7 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
         };
 
         pc.ontrack = (event) => {
+          remoteConnectedRef.current = true;
           const streamFromEvent = event.streams[0];
           if (streamFromEvent) {
             setRemoteStreams((current) => ({ ...current, [remoteUserId]: streamFromEvent }));
@@ -298,11 +300,15 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
 
     if (endingCall?.isCaller && currentUserId) {
       const targets = endingCall.memberIds.filter((id) => id !== currentUserId);
+      const event = remoteConnectedRef.current ? "call_cancelled" : "call_missed";
       void Promise.all(
         targets.map((target) =>
-          sendPersonalBroadcast(target, "call_cancelled", {
+          sendPersonalBroadcast(target, event, {
             callId: endingCall.callId,
             callerId: currentUserId,
+            conversationId: endingCall.conversationId,
+            conversationTitle: endingCall.conversationTitle,
+            mode: endingCall.mode,
           }).catch(() => undefined),
         ),
       );
@@ -321,6 +327,7 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
     pendingIceRef.current.clear();
     readyPeersRef.current.clear();
     setRemoteStreams({});
+    remoteConnectedRef.current = false;
 
     localStreamRef.current?.getTracks().forEach((track) => track.stop());
     localStreamRef.current = null;
@@ -456,20 +463,25 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
           });
         }
       })
+      .on("broadcast", { event: "call_missed" }, ({ payload }) => {
+        const missed = payload as { callId?: string; callerId?: string; conversationId?: string; conversationTitle?: string; mode?: CallMode };
+        if (!missed.callId || missed.callerId === userId) return;
+        if (activeCallRef.current?.callId === missed.callId) return;
+        setIncomingCall((current) => current?.callId === missed.callId ? null : current);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("ychat:call-missed", {
+            detail: {
+              title: missed.conversationTitle || "Ychat call",
+              mode: missed.mode || "audio",
+              conversationId: missed.conversationId,
+            },
+          }));
+        }
+      })
       .on("broadcast", { event: "call_declined" }, ({ payload }) => {
         const declined = payload as { callId?: string; userId?: string };
         if (declined.callId === activeCallRef.current?.callId && declined.userId) {
           closePeer(declined.userId);
-          const current = activeCallRef.current;
-          if (current && typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent("ychat:call-missed", {
-              detail: {
-                title: current.conversationTitle,
-                mode: current.mode,
-                conversationId: current.conversationId,
-              },
-            }));
-          }
           setCallError("Call declined.");
         }
       })
