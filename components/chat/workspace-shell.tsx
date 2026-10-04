@@ -358,6 +358,8 @@ export function WorkspaceShell() {
   const [viewedMessageIds, setViewedMessageIds] = useState<string[]>([]);
   const [revealedMessageIds, setRevealedMessageIds] = useState<string[]>([]);
   const [oneTimeViewEnabled, setOneTimeViewEnabled] = useState(false);
+  const [settingsModal, setSettingsModal] = useState<"linked-devices" | "subscription" | "account" | "help" | null>(null);
+  const oneTimeRevealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   async function refreshConversations(preferredId?: string) {
     const { data, error: conversationsError } = await getConversations();
@@ -542,6 +544,33 @@ export function WorkspaceShell() {
   }, [activeConversationId, profiles, userId]);
 
   useEffect(() => {
+    if (!userId) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`workspace-messages:${userId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const incoming = payload.new as MessageRow;
+        if (!incoming?.id || incoming.sender_id === userId || incoming.conversation_id === activeConversationId) return;
+        setUnreadCounts((current) => ({
+          ...current,
+          [incoming.conversation_id]: (current[incoming.conversation_id] ?? 0) + 1,
+        }));
+        if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
+          const sender = profiles.find((profile) => profile.id === incoming.sender_id)?.display_name || "New message";
+          new Notification(sender, {
+            body: incoming.message_type === "text" ? incoming.body : `Sent a ${incoming.message_type}`,
+            icon: "/icon-192.png",
+          });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      void channel.unsubscribe();
+    };
+  }, [activeConversationId, profiles, userId]);
+
+  useEffect(() => {
     if (!activeConversationId || messages.length === 0) {
       setMessageReactions([]);
       return;
@@ -602,6 +631,20 @@ export function WorkspaceShell() {
       setError(err instanceof Error ? err.message : "Unable to react to message.");
     }
   }
+
+  useEffect(() => {
+    setRevealedMessageIds([]);
+    if (oneTimeRevealTimerRef.current) {
+      clearTimeout(oneTimeRevealTimerRef.current);
+      oneTimeRevealTimerRef.current = null;
+    }
+  }, [activeConversationId]);
+
+  useEffect(() => {
+    return () => {
+      if (oneTimeRevealTimerRef.current) clearTimeout(oneTimeRevealTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     const scroller = messagesScrollRef.current;
@@ -1039,8 +1082,13 @@ export function WorkspaceShell() {
     if (!message.one_time_view || message.sender_id === userId || viewedMessageIds.includes(message.id)) return;
     try {
       await markMessageViewed(message.id);
+      if (oneTimeRevealTimerRef.current) clearTimeout(oneTimeRevealTimerRef.current);
       setViewedMessageIds((current) => current.includes(message.id) ? current : [...current, message.id]);
       setRevealedMessageIds((current) => current.includes(message.id) ? current : [...current, message.id]);
+      oneTimeRevealTimerRef.current = setTimeout(() => {
+        setRevealedMessageIds((current) => current.filter((id) => id !== message.id));
+        oneTimeRevealTimerRef.current = null;
+      }, 15_000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to open this view-once message.");
     }
@@ -1378,6 +1426,65 @@ export function WorkspaceShell() {
         />
       )}
 
+      {settingsModal && (
+        <Modal onClose={() => setSettingsModal(null)}>
+          <div className="flex items-center justify-between border-b border-[var(--ychat-border)] p-5">
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-cyan-600">Ychat settings</p>
+              <h2 className="mt-1 text-xl font-semibold">
+                {settingsModal === "linked-devices" ? "Linked devices" : settingsModal === "subscription" ? "Subscription" : settingsModal === "account" ? "Account center" : "Help & feedback"}
+              </h2>
+            </div>
+            <button type="button" onClick={() => setSettingsModal(null)} className="rounded-full p-2 text-slate-500 hover:bg-black/5 dark:hover:bg-white/10" aria-label="Close"><X className="h-5 w-5" /></button>
+          </div>
+          <div className="space-y-4 p-5">
+            {settingsModal === "linked-devices" && (
+              <>
+                <div className="rounded-2xl border border-[var(--ychat-border)] bg-[var(--ychat-surface-2)] p-4">
+                  <p className="font-medium">This browser</p>
+                  <p className="mt-1 text-sm text-slate-500">{typeof navigator !== "undefined" ? navigator.userAgent.split(") ").slice(-1)[0] : "Current device"} · Active now</p>
+                  <p className="mt-1 text-xs text-slate-500">{typeof window !== "undefined" ? window.location.host : "ychat.yamaahmadi.com"}</p>
+                </div>
+                <p className="text-sm text-slate-500">Linked-device management is account-level. This session is the active browser session; sign out below to remove this session immediately.</p>
+                <button type="button" onClick={() => void handleLogout()} className="w-full rounded-xl bg-rose-500/15 px-4 py-2.5 text-sm font-semibold text-rose-600 dark:text-rose-300">Sign out this device</button>
+              </>
+            )}
+            {settingsModal === "subscription" && (
+              <>
+                <div className="rounded-2xl border border-cyan-200/60 bg-cyan-50 p-4 dark:border-cyan-400/20 dark:bg-cyan-500/5">
+                  <p className="font-semibold text-cyan-800 dark:text-cyan-200">Ychat plan</p>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Your account is ready for plan and billing management. Billing is not connected to this self-hosted production server yet.</p>
+                </div>
+                <a href="mailto:support@yamaahmadi.fr?subject=Ychat%20subscription" className="block w-full rounded-xl bg-cyan-500 px-4 py-2.5 text-center text-sm font-semibold text-slate-950">Contact billing</a>
+              </>
+            )}
+            {settingsModal === "account" && (
+              <>
+                <div className="rounded-2xl border border-[var(--ychat-border)] bg-[var(--ychat-surface-2)] p-4">
+                  <p className="font-medium">{currentProfile?.display_name || "Ychat user"}</p>
+                  <p className="mt-1 text-sm text-slate-500">{currentProfile?.email_address || "Email managed by your sign-in provider"}</p>
+                  <p className="mt-2 break-all font-mono text-xs text-cyan-700 dark:text-cyan-300">{currentProfile?.contact_code || currentProfile?.username || userId || "Unavailable"}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => void navigator.clipboard?.writeText(shareCode)} className="flex-1 rounded-xl border border-[var(--ychat-border)] px-4 py-2.5 text-sm">Copy Ychat ID</button>
+                  <button type="button" onClick={() => void handleLogout()} className="flex-1 rounded-xl bg-rose-500/15 px-4 py-2.5 text-sm font-semibold text-rose-600 dark:text-rose-300">Sign out</button>
+                </div>
+              </>
+            )}
+            {settingsModal === "help" && (
+              <>
+                <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
+                  <p><strong className="text-[var(--ychat-text)]">Messages:</strong> use the compact Edit, Reply and React actions directly below each message.</p>
+                  <p><strong className="text-[var(--ychat-text)]">Calls:</strong> allow microphone/camera and notifications in the browser for the best calling experience.</p>
+                  <p><strong className="text-[var(--ychat-text)]">Stories:</strong> text stories support size, background and color choices and expire after 24 hours.</p>
+                </div>
+                <a href="mailto:support@yamaahmadi.fr?subject=Ychat%20Help%20%26%20Feedback" className="block w-full rounded-xl bg-cyan-500 px-4 py-2.5 text-center text-sm font-semibold text-slate-950">Email support</a>
+              </>
+            )}
+          </div>
+        </Modal>
+      )}
+
       {groupOpen && (
         <Modal onClose={() => setGroupOpen(false)}>
           <div className="flex items-center justify-between border-b border-white/10 p-5">
@@ -1643,9 +1750,9 @@ export function WorkspaceShell() {
                           reactions.forEach((reaction) => reactionByEmoji.set(reaction.reaction, (reactionByEmoji.get(reaction.reaction) ?? 0) + 1));
                           const quoted = message.reply_to_id ? messages.find((item) => item.id === message.reply_to_id) : null;
                           return (
-                            <div key={message.id} id={`ychat-message-${message.id}`} className={`mb-3 flex ${mine ? "justify-end" : "justify-start"}`}>
-                              <div className={`group relative max-w-[82%] rounded-[1.15rem] px-3 py-2 sm:max-w-[68%] ${mine ? "rounded-br-md border border-cyan-200/80 bg-transparent text-slate-900 shadow-[0_8px_30px_rgba(8,145,178,0.08)] dark:border-cyan-300/25 dark:text-slate-100" : "rounded-bl-md border border-slate-200 bg-white/95 text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/[0.055] dark:bg-slate-900/80 dark:text-slate-100"}`}>
-                                {!mine && activeConversation.type === "group" && <p className="mb-1 text-[11px] font-semibold text-cyan-300">{getSenderName(message.sender_id)}</p>}
+                            <div key={message.id} id={`ychat-message-${message.id}`} className={`mb-2 flex flex-col ${mine ? "items-end" : "items-start"}`}>
+                              <div className={`group relative w-fit max-w-[82%] rounded-[1.05rem] px-3 py-2 sm:max-w-[68%] ${mine ? "rounded-br-md border border-cyan-200/80 bg-transparent text-slate-900 shadow-[0_8px_30px_rgba(8,145,178,0.08)] dark:border-cyan-300/25 dark:text-slate-100" : "rounded-bl-md border border-slate-200 bg-white/95 text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/[0.055] dark:bg-slate-900/80 dark:text-slate-100"}`}>
+                                {!mine && activeConversation.type === "group" && <p className="mb-1 text-[11px] font-semibold text-cyan-700 dark:text-cyan-300">{getSenderName(message.sender_id)}</p>}
                                 {quoted && (
                                   <button
                                     type="button"
@@ -1663,44 +1770,60 @@ export function WorkspaceShell() {
                                     <LockKeyhole className="h-5 w-5" />
                                     <span><span className="block">View once</span><span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">This content disappears after opening.</span></span>
                                   </button>
-                                ) : message.message_type === "sticker" || STICKERS.includes(message.body) ? <div className="px-2 py-1 text-5xl leading-none">{message.body}</div> : message.message_type === "voice" && attachment ? <AttachmentPlayer attachment={attachment} /> : message.message_type === "file" && attachment ? <AttachmentPlayer attachment={attachment} compact /> : <p className="whitespace-pre-wrap break-words text-[14px] leading-5">{message.body}</p>}
-                                <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-500"><span>{formatTime(message.created_at)}</span>{message.edited_at && <span>edited</span>}{mine && <span className="text-cyan-600">✓✓</span>}</div>
-                                {reactions.length > 0 && <div className="mt-1 flex flex-wrap justify-end gap-1">{Array.from(reactionByEmoji.entries()).map(([emoji, count]) => <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs hover:bg-slate-200 dark:border-white/15 dark:bg-black/20 dark:hover:bg-white/10">{emoji}{count > 1 ? ` ${count}` : ""}</button>)}</div>}
-                                {messageSelectMode && mine && <button type="button" onClick={() => setSelectedMessageIds((current) => current.includes(message.id) ? current.filter((id) => id !== message.id) : [...current, message.id])} className={`absolute -left-8 top-3 flex h-5 w-5 items-center justify-center rounded-full border ${selectedMessageIds.includes(message.id) ? "border-cyan-500 bg-cyan-500 text-slate-950" : "border-slate-300 bg-white text-transparent"}`}>{selectedMessageIds.includes(message.id) && <Check className="h-3 w-3" />}</button>}
-                                {messageSelectMode && selectedMessageIds.length > 0 && (
+                                ) : message.message_type === "sticker" || STICKERS.includes(message.body) ? (
+                                  <div className="px-2 py-1 text-5xl leading-none">{message.body}</div>
+                                ) : message.message_type === "voice" && attachment ? (
+                                  <div onContextMenu={(event) => message.one_time_view && event.preventDefault()} className={message.one_time_view ? "select-none" : ""}>
+                                    <AttachmentPlayer attachment={attachment} />
+                                  </div>
+                                ) : message.message_type === "file" && attachment ? (
+                                  <div onContextMenu={(event) => message.one_time_view && event.preventDefault()} className={message.one_time_view ? "select-none" : ""}>
+                                    <AttachmentPlayer attachment={attachment} compact />
+                                  </div>
+                                ) : (
+                                  <p className={`whitespace-pre-wrap break-words text-[14px] leading-5 ${message.one_time_view ? "select-none" : ""}`}>{message.body}</p>
+                                )}
+                                <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-500">
+                                  <span>{formatTime(message.created_at)}</span>
+                                  {message.edited_at && <span>edited</span>}
+                                  {mine && <span className="text-cyan-600">✓✓</span>}
+                                </div>
+                                {reactions.length > 0 && (
+                                  <div className="mt-1 flex flex-wrap justify-end gap-1">
+                                    {Array.from(reactionByEmoji.entries()).map(([emoji, count]) => (
+                                      <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-full border border-slate-200 bg-slate-100 px-2 py-0.5 text-xs hover:bg-slate-200 dark:border-white/15 dark:bg-black/20 dark:hover:bg-white/10">{emoji}{count > 1 ? ` ${count}` : ""}</button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className={`relative mt-0.5 flex min-h-6 items-center gap-1 px-1 text-slate-500 ${mine ? "justify-end" : "justify-start"}`}>
+                                {messageSelectMode && mine && (
                                   <button
                                     type="button"
-                                    onClick={() => {
-                                      const ids = [...selectedMessageIds];
-                                      void removeOwnMessages(ids)
-                                        .then(() => {
-                                          setMessages((current) => current.filter((message) => !ids.includes(message.id)));
-                                          setSelectedMessageIds([]);
-                                          setMessageSelectMode(false);
-                                        })
-                                        .catch((err) => setError(err instanceof Error ? err.message : "Unable to delete selected messages."));
-                                    }}
-                                    className="rounded-full px-2 py-1 text-[10px] font-semibold text-rose-600 hover:bg-rose-500/10"
+                                    onClick={() => setSelectedMessageIds((current) => current.includes(message.id) ? current.filter((id) => id !== message.id) : [...current, message.id])}
+                                    className={`mr-1 flex h-5 w-5 items-center justify-center rounded-full border ${selectedMessageIds.includes(message.id) ? "border-cyan-500 bg-cyan-500 text-slate-950" : "border-slate-300 bg-white text-transparent"}`}
+                                    aria-label={selectedMessageIds.includes(message.id) ? "Deselect message" : "Select message"}
                                   >
-                                    Delete selected messages
+                                    {selectedMessageIds.includes(message.id) && <Check className="h-3 w-3" />}
                                   </button>
                                 )}
-                                <div className="mt-1 flex items-center justify-end gap-1">
-                                  {mine && message.message_type === "text" && (
-                                    <button type="button" aria-label="Edit message" title="Edit" onClick={() => beginEditMessage(message)} className="rounded-full px-1.5 py-1 text-[10px] font-semibold text-slate-400 hover:bg-black/5 hover:text-cyan-700 dark:hover:bg-white/10 dark:hover:text-cyan-200">Edit</button>
-                                  )}
-                                  <button type="button" aria-label="Reply to message" title="Reply" onClick={() => setReplyToMessageId((current) => current === message.id ? null : message.id)} className="rounded-full border border-slate-200 bg-white/90 p-1 text-slate-500 shadow-sm hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-slate-900/80 dark:hover:bg-white/10 dark:hover:text-white">
-                                    <MessageSquareReply className="h-3.5 w-3.5" />
+                                {mine && message.message_type === "text" && (
+                                  <button type="button" aria-label="Edit message" title="Edit" onClick={() => beginEditMessage(message)} className="rounded-full border border-slate-200 bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-500 shadow-sm hover:bg-slate-100 hover:text-cyan-700 dark:border-white/10 dark:bg-slate-900/80 dark:hover:bg-white/10 dark:hover:text-cyan-200">Edit</button>
+                                )}
+                                <button type="button" aria-label="Reply to message" title="Reply" onClick={() => setReplyToMessageId((current) => current === message.id ? null : message.id)} className="flex h-6 items-center gap-1 rounded-full border border-slate-200 bg-white/90 px-2 text-[11px] text-slate-500 shadow-sm hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-slate-900/80 dark:hover:bg-white/10 dark:hover:text-white">
+                                  <MessageSquareReply className="h-3.5 w-3.5" />
+                                  <span>Reply</span>
+                                </button>
+                                <div className="relative">
+                                  <button type="button" aria-label="React to message" onClick={() => setReactionPickerMessageId((current) => current === message.id ? null : message.id)} className="flex h-6 items-center gap-1 rounded-full border border-slate-200 bg-white/90 px-2 text-[11px] text-slate-500 shadow-sm hover:bg-slate-100 hover:text-slate-900 dark:border-white/10 dark:bg-slate-900/80 dark:hover:bg-white/10 dark:hover:text-white">
+                                    <Smile className="h-3.5 w-3.5" />
+                                    <span>React</span>
                                   </button>
-                                </div>
-                                <div className="mt-1 flex justify-end">
-                                  <button type="button" aria-label="React to message" onClick={() => setReactionPickerMessageId((current) => current === message.id ? null : message.id)} className="rounded-full p-1 text-slate-500 hover:bg-black/5 hover:text-slate-900 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white"><Smile className="h-3.5 w-3.5" /></button>
-                                  {reactionPickerMessageId === message.id && <div className={`absolute bottom-7 z-40 flex max-w-[260px] flex-wrap gap-1 rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-2 shadow-2xl ${mine ? "right-0" : "left-0"}`}>{["❤️","👍","😂","😮","😢","😡","👏","🔥","🎉","🙏","💯","🚀"].map((emoji) => <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-lg p-1.5 text-lg hover:bg-white/10">{emoji}</button>)}</div>}
+                                  {reactionPickerMessageId === message.id && <div className={`absolute bottom-7 z-40 flex max-w-[260px] flex-wrap gap-1 rounded-2xl border border-[var(--ychat-border)] bg-[var(--ychat-surface)] p-2 shadow-2xl ${mine ? "right-0" : "left-0"}`}>{["❤️","👍","😂","😮","😢","😡","👏","🔥","🎉","🙏","💯","🚀"].map((emoji) => <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-lg p-1.5 text-lg hover:bg-black/5 dark:hover:bg-white/10">{emoji}</button>)}</div>}
                                 </div>
                               </div>
                             </div>
-                          );
-                        })}
                         <div ref={messagesEndRef} />
                       </div>
                     </div>
@@ -1858,7 +1981,7 @@ export function WorkspaceShell() {
                     <div className="w-full sm:w-[360px]"><ThemeSwitcher /></div>
                   </div>
                 </div>
-                <SettingRow icon={<Sparkles className="h-5 w-5" />} title="Help & feedback" text="Get help with Ychat or send feedback about the premium experience." action={<a href="mailto:support@yamaahmadi.fr?subject=Ychat%20Help%20%26%20Feedback" className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Contact</a>} />
+                <SettingRow icon={<Sparkles className="h-5 w-5" />} title="Help & feedback" text="Get help with Ychat or send feedback about the premium experience." action={<button type="button" onClick={() => setSettingsModal("help")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Open</button>} />
                 <SettingRow icon={<Users className="h-5 w-5" />} title="Invite friends" text="Share your Ychat ID or invitation link with people you trust." action={<button type="button" onClick={() => void navigator.clipboard?.writeText(shareText)} className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950">Copy invite</button>} />
                 <SettingRow icon={<Building2 className="h-5 w-5" />} title="Yama brand apps" text="Access Yama Ahmadi's connected apps and services from one place." action={<a href="https://yamaahmadi.fr" target="_blank" rel="noreferrer" className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Open apps</a>} />
                 <SettingRow icon={<Building2 className="h-5 w-5" />} title="Install Ychat" text="Install Ychat on supported browsers. The native iOS/Android app uses the installed application directly." action={<button type="button" onClick={() => void installPwa()} className="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950">{installReady ? "Install" : "Install web app"}</button>} />
@@ -1876,10 +1999,10 @@ export function WorkspaceShell() {
                     <a href={`mailto:?subject=Add me on Ychat&body=${encodeURIComponent(shareText)}`} className="rounded-xl border border-white/10 px-4 py-2 text-center text-sm">Share by email</a>
                   </div>
                 </div>
-                <SettingRow icon={<Users className="h-5 w-5" />} title="Linked devices" text="See the devices currently using your Ychat account and keep this session secure." action={<button type="button" onClick={() => setError("Linked-device management will be connected to your account center before release.")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Manage</button>} />
-                <SettingRow icon={<Sparkles className="h-5 w-5" />} title="Subscription" text="Ychat plan, billing and premium features." action={<button type="button" onClick={() => setError("Subscription management is ready for the billing integration.")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">View plan</button>} />
+                <SettingRow icon={<Users className="h-5 w-5" />} title="Linked devices" text="See the devices currently using your Ychat account and keep this session secure." action={<button type="button" onClick={() => setSettingsModal("linked-devices")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Manage</button>} />
+                <SettingRow icon={<Sparkles className="h-5 w-5" />} title="Subscription" text="Ychat plan, billing and premium features." action={<button type="button" onClick={() => setSettingsModal("subscription")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">View plan</button>} />
                 <SettingRow icon={<ShieldCheck className="h-5 w-5" />} title="Privacy" text="Control privacy, story visibility and communication permissions." action={<Link href="/privacy" className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Open</Link>} />
-                <SettingRow icon={<MessageCircle className="h-5 w-5" />} title="Account" text="Your Ychat ID, profile information and account security." action={<button type="button" onClick={() => setError("Account center will use this profile securely.")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Account center</button>} />
+                <SettingRow icon={<MessageCircle className="h-5 w-5" />} title="Account" text="Your Ychat ID, profile information and account security." action={<button type="button" onClick={() => setSettingsModal("account")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Account center</button>} />
                 <SettingRow icon={<HardDriveUpload className="h-5 w-5" />} title="Storage" text="Review local cache and shared media storage." action={<button type="button" onClick={() => void clearLocalStorageAndMedia()} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Manage</button>} />
                 <SettingRow icon={<Bell className="h-5 w-5" />} title="Message and call notifications" text={`Browser permission: ${notificationPermission}`} action={<button type="button" onClick={() => void enableNotifications()} className="rounded-xl border border-white/10 px-4 py-2 text-sm">Enable</button>} />
                 <SettingRow icon={<Video className="h-5 w-5" />} title="Calling" text="Voice/video calls use encrypted browser WebRTC media with Supabase realtime signaling. HTTPS is required outside localhost." />
