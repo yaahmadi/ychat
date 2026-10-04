@@ -24,7 +24,7 @@ function playTone(frequency = 520, durationMs = 120) {
     const sharedContext = getCallAudioContext();
     const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextClass && !sharedContext) return;
-    const context = sharedContext || new AudioContextClass!();
+    const context = sharedContext || new (AudioContextClass as typeof AudioContext)();
     const oscillator = context.createOscillator();
     const gain = context.createGain();
     oscillator.frequency.value = frequency;
