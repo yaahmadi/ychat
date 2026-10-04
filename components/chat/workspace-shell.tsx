@@ -555,11 +555,26 @@ export function WorkspaceShell() {
       if (!row || !messageIds.includes(row.message_id)) return;
       if (event.eventType === "DELETE") {
         setMessageReactions((current) => current.filter((item) => !(item.message_id === row.message_id && item.user_id === row.user_id)));
-      } else {
-        setMessageReactions((current) => [
-          ...current.filter((item) => !(item.message_id === row.message_id && item.user_id === row.user_id)),
-          row,
-        ]);
+        return;
+      }
+      setMessageReactions((current) => [
+        ...current.filter((item) => !(item.message_id === row.message_id && item.user_id === row.user_id)),
+        row,
+      ]);
+      if (row.user_id !== userId) {
+        void createClient()
+          .from("messages")
+          .select("conversation_id,sender_id")
+          .eq("id", row.message_id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (!data || data.conversation_id === activeConversationId || data.sender_id === userId) return;
+            setUnreadCounts((current) => ({
+              ...current,
+              [data.conversation_id]: (current[data.conversation_id] ?? 0) + 1,
+            }));
+          })
+          .catch(() => undefined);
       }
     });
 
