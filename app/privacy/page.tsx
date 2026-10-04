@@ -7,18 +7,18 @@ export const metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="min-h-dvh bg-[#030712] px-4 py-10 text-slate-100 sm:px-6">
-      <article className="mx-auto max-w-3xl rounded-3xl border border-white/10 bg-[#07111f]/90 p-6 sm:p-9">
-        <Link href="/" className="text-sm font-medium text-cyan-300 hover:text-cyan-200">
+    <main className="min-h-dvh bg-[#f7fafc] px-4 py-10 text-slate-900 dark:bg-[#030712] dark:text-slate-100 sm:px-6">
+      <article className="mx-auto max-w-3xl rounded-3xl border border-slate-200 bg-white/95 shadow-sm dark:border-white/10 dark:bg-[#07111f]/90 p-6 sm:p-9">
+        <Link href="/" className="text-sm font-medium text-cyan-700 hover:text-cyan-800 dark:text-cyan-300 dark:hover:text-cyan-200">
           ← Back to Ychat
         </Link>
 
         <h1 className="mt-5 text-3xl font-semibold">Ychat Privacy Policy</h1>
-        <p className="mt-2 text-sm text-slate-400">Effective date: August 9, 2026</p>
+        <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Effective date: August 9, 2026</p>
 
-        <div className="mt-8 space-y-7 text-sm leading-7 text-slate-300">
+        <div className="mt-8 space-y-7 text-sm leading-7 text-slate-700 dark:text-slate-300">
           <section>
-            <h2 className="text-lg font-semibold text-white">1. About Ychat</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white">1. About Ychat</h2>
             <p className="mt-2">
               Ychat is a messaging web application and progressive web app operated by Yama Ahmadi Services Informatiques. It provides authenticated messaging, group communication, media-sharing, stories, and supported voice/video communication features.
             </p>
