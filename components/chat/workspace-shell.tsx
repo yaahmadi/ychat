@@ -408,6 +408,28 @@ export function WorkspaceShell() {
   }, []);
 
   useEffect(() => {
+    const onMissedCall = (event: Event) => {
+      const detail = (event as CustomEvent<{ title?: string; mode?: CallMode; conversationId?: string }>).detail;
+      if (!detail?.title) return;
+      logCall({
+        title: detail.title,
+        mode: detail.mode === "video" ? "video" : "audio",
+        direction: "missed",
+        conversationId: detail.conversationId,
+        durationSeconds: 0,
+      });
+      if ("Notification" in window && Notification.permission === "granted" && document.hidden) {
+        new Notification("Missed Ychat call", {
+          body: `${detail.title} • ${detail.mode === "video" ? "Video" : "Voice"} call`,
+          icon: "/icon-192.png",
+        });
+      }
+    };
+    window.addEventListener("ychat:call-missed", onMissedCall);
+    return () => window.removeEventListener("ychat:call-missed", onMissedCall);
+  }, [userId]);
+
+  useEffect(() => {
     if (!userId) return;
     const supabase = createClient();
 
@@ -609,6 +631,7 @@ export function WorkspaceShell() {
           direction: row.direction,
           createdAt: row.created_at,
           conversationId: row.conversation_id ?? undefined,
+          durationSeconds: row.duration_seconds ?? null,
         })));
       }
 
@@ -1539,7 +1562,7 @@ export function WorkspaceShell() {
                         <div className="mx-auto mb-5 w-fit rounded-lg bg-[var(--ychat-input)]/90 px-3 py-1.5 text-center text-[11px] text-slate-400 shadow">Messages are stored securely in your Ychat workspace.</div>                        {callLogs.filter((item) => item.conversationId === activeConversation.id).slice(0, 8).map((item) => (
                           <div key={`call-${item.id}`} className="mx-auto flex w-fit items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-1.5 text-[11px] text-slate-600 shadow-sm">
                             <Phone className={`h-3.5 w-3.5 ${item.direction === "missed" ? "text-rose-500" : "text-cyan-600"}`} />
-                            <span className={item.direction === "missed" ? "font-semibold text-rose-600" : ""}>{item.direction === "missed" ? "Missed call" : item.direction === "incoming" ? "Incoming call" : "Outgoing call"} · {item.mode}{item.durationSeconds ? ` · ${Math.floor(item.durationSeconds / 60)}:${String(item.durationSeconds % 60).padStart(2, "0")}` : ""}</span>
+                            <span className={item.direction === "missed" ? "font-semibold text-rose-600" : ""}>{item.direction === "missed" ? "Missed call" : item.direction === "incoming" ? "Incoming call" : "Outgoing call"} · {item.mode}{item.durationSeconds != null ? ` · ${Math.floor(item.durationSeconds / 60)}:${String(item.durationSeconds % 60).padStart(2, "0")}` : ""}</span>
                             <span>{formatTime(item.createdAt)}</span>
                           </div>
                         ))}
@@ -1569,7 +1592,25 @@ export function WorkspaceShell() {
                                 {message.message_type === "sticker" || STICKERS.includes(message.body) ? <div className="px-2 py-1 text-5xl leading-none">{message.body}</div> : message.message_type === "voice" && attachment ? <AttachmentPlayer attachment={attachment} /> : message.message_type === "file" && attachment ? <AttachmentPlayer attachment={attachment} compact /> : <p className="whitespace-pre-wrap break-words text-[14px] leading-5">{message.body}</p>}
                                 <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-500"><span>{formatTime(message.created_at)}</span>{message.edited_at && <span>edited</span>}{mine && <span className="text-cyan-600">✓✓</span>}</div>
                                 {reactions.length > 0 && <div className="mt-1 flex flex-wrap justify-end gap-1">{Array.from(reactionByEmoji.entries()).map(([emoji, count]) => <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-full border border-white/15 bg-black/20 px-2 py-0.5 text-xs hover:bg-white/10">{emoji}{count > 1 ? ` ${count}` : ""}</button>)}</div>}
-                                {messageSelectMode && <button type="button" onClick={() => setSelectedMessageIds((current) => current.includes(message.id) ? current.filter((id) => id !== message.id) : [...current, message.id])} className={`absolute -left-8 top-3 flex h-5 w-5 items-center justify-center rounded-full border ${selectedMessageIds.includes(message.id) ? "border-cyan-500 bg-cyan-500 text-slate-950" : "border-slate-300 bg-white text-transparent"}`}>{selectedMessageIds.includes(message.id) && <Check className="h-3 w-3" />}</button>}
+                                {messageSelectMode && mine && <button type="button" onClick={() => setSelectedMessageIds((current) => current.includes(message.id) ? current.filter((id) => id !== message.id) : [...current, message.id])} className={`absolute -left-8 top-3 flex h-5 w-5 items-center justify-center rounded-full border ${selectedMessageIds.includes(message.id) ? "border-cyan-500 bg-cyan-500 text-slate-950" : "border-slate-300 bg-white text-transparent"}`}>{selectedMessageIds.includes(message.id) && <Check className="h-3 w-3" />}</button>}
+                                {messageSelectMode && selectedMessageIds.length > 0 && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const ids = [...selectedMessageIds];
+                                      void removeOwnMessages(ids)
+                                        .then(() => {
+                                          setMessages((current) => current.filter((message) => !ids.includes(message.id)));
+                                          setSelectedMessageIds([]);
+                                          setMessageSelectMode(false);
+                                        })
+                                        .catch((err) => setError(err instanceof Error ? err.message : "Unable to delete selected messages."));
+                                    }}
+                                    className="rounded-full px-2 py-1 text-[10px] font-semibold text-rose-600 hover:bg-rose-500/10"
+                                  >
+                                    Delete selected messages
+                                  </button>
+                                )}
                                 <div className="mt-1 flex justify-end gap-1 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
                                   {mine && message.message_type === "text" && (
                                     <button type="button" aria-label="Edit message" title="Edit" onClick={() => beginEditMessage(message)} className="rounded-full px-1.5 py-1 text-[10px] font-semibold text-slate-400 hover:bg-black/5 hover:text-cyan-700 dark:hover:bg-white/10 dark:hover:text-cyan-200">Edit</button>
@@ -1579,7 +1620,7 @@ export function WorkspaceShell() {
                                   </button>
                                 </div>
                                 <div className="relative mt-1 flex justify-end">
-                                  <button type="button" aria-label="React to message" onClick={() => setReactionPickerMessageId((current) => current === message.id ? null : message.id)} className="rounded-full p-1 text-white/45 hover:bg-white/10 hover:text-white"><Smile className="h-3.5 w-3.5" /></button>
+                                  <button type="button" aria-label="React to message" onClick={() => setReactionPickerMessageId((current) => current === message.id ? null : message.id)} className="rounded-full p-1 text-slate-500 hover:bg-black/5 hover:text-slate-900 dark:text-white/45 dark:hover:bg-white/10 dark:hover:text-white"><Smile className="h-3.5 w-3.5" /></button>
                                   {reactionPickerMessageId === message.id && <div className={`absolute bottom-7 z-40 flex max-w-[260px] flex-wrap gap-1 rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-2 shadow-2xl ${mine ? "right-0" : "left-0"}`}>{["❤️","👍","😂","😮","😢","😡","👏","🔥","🎉","🙏","💯","🚀"].map((emoji) => <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-lg p-1.5 text-lg hover:bg-white/10">{emoji}</button>)}</div>}
                                 </div>
                               </div>
