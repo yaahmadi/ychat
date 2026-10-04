@@ -224,6 +224,7 @@ export async function createCallLog(input: {
   title: string;
   mode: "audio" | "video";
   direction: "incoming" | "outgoing" | "missed";
+  durationSeconds?: number | null;
 }) {
   const supabase = createClient();
   const userId = await currentUserId();
@@ -235,6 +236,7 @@ export async function createCallLog(input: {
       title: input.title,
       mode: input.mode,
       direction: input.direction,
+      duration_seconds: input.durationSeconds ?? null,
     })
     .select("*")
     .single();
@@ -708,14 +710,21 @@ export async function createStoryComment(storyId: string, body: string) {
   return data as StoryCommentRow;
 }
 
-export async function createTextStory(body: string) {
+export async function createTextStory(body: string, options?: { fontSize?: number; background?: string; color?: string }) {
   const supabase = createClient();
   const userId = await currentUserId();
   const clean = body.trim();
   if (!clean) throw new Error("Story cannot be empty.");
   const { data, error } = await supabase
     .from("stories")
-    .insert({ user_id: userId, story_type: "text", body: clean })
+    .insert({
+      user_id: userId,
+      story_type: "text",
+      body: clean,
+      text_font_size: options?.fontSize ?? 30,
+      text_background: options?.background ?? "ocean",
+      text_color: options?.color ?? "#ffffff",
+    })
     .select("*")
     .single();
   if (error) throw error;
@@ -748,6 +757,14 @@ export async function deleteStory(storyId: string) {
 }
 
 let storySubscriptionSequence = 0;
+
+export function subscribeToStoryViews(callback: (payload: unknown) => void) {
+  const supabase = createClient();
+  return supabase
+    .channel(`story-views:${crypto.randomUUID()}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "story_views" }, callback)
+    .subscribe();
+}
 
 export function subscribeToStories(callback: (payload: unknown) => void) {
   storySubscriptionSequence += 1;
