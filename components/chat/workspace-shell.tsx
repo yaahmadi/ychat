@@ -584,6 +584,31 @@ export function WorkspaceShell() {
     };
   }, [activeConversationId, messages]);
 
+  useEffect(() => {
+    if (!userId) return;
+    const channel = subscribeToMessageReactions((payload) => {
+      const event = payload as { eventType?: string; new?: MessageReactionRow };
+      const row = event.new;
+      if (!row || event.eventType === "DELETE" || row.user_id === userId) return;
+      void createClient()
+        .from("messages")
+        .select("conversation_id,sender_id")
+        .eq("id", row.message_id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (!data || data.conversation_id === activeConversationId || data.sender_id === userId) return;
+          setUnreadCounts((current) => ({
+            ...current,
+            [data.conversation_id]: (current[data.conversation_id] ?? 0) + 1,
+          }));
+        })
+        .catch(() => undefined);
+    });
+    return () => {
+      void channel.unsubscribe();
+    };
+  }, [userId, activeConversationId]);
+
   async function reactToMessage(messageId: string, reaction: string) {
     try {
       await toggleMessageReaction(messageId, reaction);
