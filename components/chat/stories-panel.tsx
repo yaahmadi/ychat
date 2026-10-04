@@ -217,9 +217,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
 
   useEffect(() => {
     if (!viewerStory) return;
-    const duration = viewerStory.story_type === "video" ? null : 15_000;
-    if (duration === null) return;
-    const timer = window.setTimeout(() => showAdjacentStory(1), duration);
+    const timer = window.setTimeout(() => showAdjacentStory(1), 15_000);
     return () => window.clearTimeout(timer);
   }, [showAdjacentStory, viewerStory]);
 
