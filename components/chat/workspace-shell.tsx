@@ -1405,6 +1405,16 @@ export function WorkspaceShell() {
                   <div className="mt-3 flex items-center gap-2 rounded-xl bg-[var(--ychat-input)] px-3 py-2.5 text-slate-400">
                     <Search className="h-4 w-4" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search or start new chat" className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-slate-500" />
                   </div>
+                  <div className="mt-3 flex gap-1 overflow-x-auto pb-1 ychat-scrollbar">
+                    {([
+                      ["all", "All"], ["unread", "Unread"], ["favorites", "Favorites"], ["archived", "Archived"],
+                    ] as const).map(([id, label]) => (
+                      <button key={id} type="button" onClick={() => setChatFilter(id)} className={`rounded-full px-3 py-1.5 text-xs font-semibold whitespace-nowrap ${chatFilter === id ? "bg-cyan-500 text-slate-950" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                        {label}{id === "unread" ? ` · ${Object.values(unreadCounts).reduce((sum, count) => sum + count, 0)}` : ""}
+                      </button>
+                    ))}
+                  </div>
+
                   <div className="mt-3 flex items-center justify-between gap-2">
                     {chatSelectMode ? (
                       <>
@@ -1501,6 +1511,8 @@ export function WorkspaceShell() {
                                 <p className="mt-0.5 text-xs text-slate-500">{activeConversation.type === "group" ? String(activeMembers.length) + " members" : "Private conversation"}</p>
                               </div>
                               <button type="button" onClick={() => { void navigator.clipboard?.writeText(activeConversation.id); setConversationMenuOpen(false); }} className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-black/5 dark:text-slate-200 dark:hover:bg-white/5">Copy conversation ID</button>
+                              <button type="button" onClick={() => { const next = !favoriteConversationIds.includes(activeConversation.id); setFavoriteConversationIds((current) => next ? [...current, activeConversation.id] : current.filter((id) => id !== activeConversation.id)); void setConversationFavorite(activeConversation.id, next).catch((err) => setError(err instanceof Error ? err.message : "Unable to update favorite.")); setConversationMenuOpen(false); }} className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-black/5 dark:text-slate-200 dark:hover:bg-white/5">{favoriteConversationIds.includes(activeConversation.id) ? "Remove from favorites" : "Add to favorites"}</button>
+                              <button type="button" onClick={() => { setMessageSelectMode((current) => !current); setSelectedMessageIds([]); setConversationMenuOpen(false); }} className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-black/5 dark:text-slate-200 dark:hover:bg-white/5">{messageSelectMode ? "Cancel message selection" : "Select messages"}</button>
                               <button type="button" onClick={() => { setConversationMenuOpen(false); setActiveConversationId(null); }} className="flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm text-slate-700 hover:bg-black/5 dark:text-slate-200 dark:hover:bg-white/5">Close conversation</button>
                             </div>
                           )}
@@ -1521,7 +1533,7 @@ export function WorkspaceShell() {
                           const quoted = message.reply_to_id ? messages.find((item) => item.id === message.reply_to_id) : null;
                           return (
                             <div key={message.id} id={`ychat-message-${message.id}`} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                              <div className={`relative max-w-[88%] rounded-2xl px-3 py-2 shadow-sm sm:max-w-[72%] ${mine ? "rounded-br-md border border-cyan-300/50 bg-transparent text-slate-900 dark:border-cyan-300/25 dark:text-slate-100" : "rounded-bl-md border border-black/[0.055] bg-[var(--ychat-input)] text-slate-900 dark:border-white/[0.055] dark:text-slate-100"}`}>
+                              <div className={`group relative max-w-[82%] rounded-[1.15rem] px-3 py-2.5 sm:max-w-[68%] ${mine ? "rounded-br-md border border-cyan-200/80 bg-transparent text-slate-900 shadow-[0_8px_30px_rgba(8,145,178,0.08)] dark:border-cyan-300/25 dark:text-slate-100" : "rounded-bl-md border border-slate-200 bg-white/95 text-slate-900 shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/[0.055] dark:bg-slate-900/80 dark:text-slate-100"}`}>
                                 {!mine && activeConversation.type === "group" && <p className="mb-1 text-[11px] font-semibold text-cyan-300">{getSenderName(message.sender_id)}</p>}
                                 {quoted && (
                                   <button
@@ -1536,7 +1548,8 @@ export function WorkspaceShell() {
                                 {message.message_type === "sticker" || STICKERS.includes(message.body) ? <div className="px-2 py-1 text-5xl leading-none">{message.body}</div> : message.message_type === "voice" && attachment ? <AttachmentPlayer attachment={attachment} /> : message.message_type === "file" && attachment ? <AttachmentPlayer attachment={attachment} compact /> : <p className="whitespace-pre-wrap break-words text-[14px] leading-5">{message.body}</p>}
                                 <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-500"><span>{formatTime(message.created_at)}</span>{message.edited_at && <span>edited</span>}{mine && <span className="text-cyan-600">✓✓</span>}</div>
                                 {reactions.length > 0 && <div className="mt-1 flex flex-wrap justify-end gap-1">{Array.from(reactionByEmoji.entries()).map(([emoji, count]) => <button key={emoji} type="button" onClick={() => void reactToMessage(message.id, emoji)} className="rounded-full border border-white/15 bg-black/20 px-2 py-0.5 text-xs hover:bg-white/10">{emoji}{count > 1 ? ` ${count}` : ""}</button>)}</div>}
-                                <div className="mt-1 flex justify-end gap-1">
+                                {messageSelectMode && <button type="button" onClick={() => setSelectedMessageIds((current) => current.includes(message.id) ? current.filter((id) => id !== message.id) : [...current, message.id])} className={`absolute -left-8 top-3 flex h-5 w-5 items-center justify-center rounded-full border ${selectedMessageIds.includes(message.id) ? "border-cyan-500 bg-cyan-500 text-slate-950" : "border-slate-300 bg-white text-transparent"}`}>{selectedMessageIds.includes(message.id) && <Check className="h-3 w-3" />}</button>}
+                                <div className="mt-1 flex justify-end gap-1 opacity-100 md:opacity-0 md:transition-opacity md:group-hover:opacity-100">
                                   {mine && message.message_type === "text" && (
                                     <button type="button" aria-label="Edit message" title="Edit" onClick={() => beginEditMessage(message)} className="rounded-full px-1.5 py-1 text-[10px] font-semibold text-slate-400 hover:bg-black/5 hover:text-cyan-700 dark:hover:bg-white/10 dark:hover:text-cyan-200">Edit</button>
                                   )}
@@ -1557,6 +1570,15 @@ export function WorkspaceShell() {
                     </div>
 
                     <div className="relative shrink-0 border-t border-white/10 bg-[var(--ychat-surface-2)] px-2 py-2 sm:px-3">
+                      {messageSelectMode && (
+                        <div className="mx-auto mb-2 flex max-w-5xl items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2">
+                          <span className="text-xs font-semibold text-slate-700">{selectedMessageIds.length} selected</span>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => { const ids = [...selectedMessageIds]; void removeOwnMessages(ids).then(() => { setMessages((current) => current.filter((message) => !ids.includes(message.id))); setSelectedMessageIds([]); setMessageSelectMode(false); }).catch((err) => setError(err instanceof Error ? err.message : "Unable to remove messages.")); }} disabled={!selectedMessageIds.length} className="rounded-xl bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40">Delete selected sent messages</button>
+                            <button type="button" onClick={() => { setSelectedMessageIds([]); setMessageSelectMode(false); }} className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs text-slate-700">Cancel</button>
+                          </div>
+                        </div>
+                      )}
                       {editingMessageId && (
                         <div className="mx-auto mb-2 flex max-w-5xl items-center gap-2 rounded-2xl border border-cyan-400/20 bg-cyan-500/5 px-3 py-2">
                           <div className="h-7 w-1 rounded-full bg-cyan-500" />
