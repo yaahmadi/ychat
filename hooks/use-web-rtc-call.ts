@@ -460,6 +460,16 @@ export function useWebRtcCall(userId: string | null, displayName: string) {
         const declined = payload as { callId?: string; userId?: string };
         if (declined.callId === activeCallRef.current?.callId && declined.userId) {
           closePeer(declined.userId);
+          const current = activeCallRef.current;
+          if (current && typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("ychat:call-missed", {
+              detail: {
+                title: current.conversationTitle,
+                mode: current.mode,
+                conversationId: current.conversationId,
+              },
+            }));
+          }
           setCallError("Call declined.");
         }
       })
