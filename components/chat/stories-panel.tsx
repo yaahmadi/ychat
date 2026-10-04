@@ -15,6 +15,7 @@ import {
   markStoryViewed,
   subscribeToStoryReactions,
   subscribeToStories,
+  subscribeToStoryViews,
   toggleStoryReaction,
   uploadStoryMedia,
 } from "@/lib/supabase/chat";
@@ -63,6 +64,9 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
   const [stories, setStories] = useState<StoryRow[]>([]);
   const [composer, setComposer] = useState<"text" | null>(null);
   const [text, setText] = useState("");
+  const [textFontSize, setTextFontSize] = useState(30);
+  const [textBackground, setTextBackground] = useState("ocean");
+  const [textColor, setTextColor] = useState("#ffffff");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewerStory, setViewerStory] = useState<StoryRow | null>(null);
@@ -114,7 +118,11 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
     setBusy(true);
     setError(null);
     try {
-      await createTextStory(text);
+      await createTextStory(text, {
+        fontSize: textFontSize,
+        background: textBackground,
+        color: textColor,
+      });
       setText("");
       setComposer(null);
       await refresh();
@@ -205,8 +213,10 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
   }, [viewerIndex, viewerStories, viewerStory]);
 
   useEffect(() => {
-    if (!viewerStory || viewerStory.story_type === "video") return;
-    const timer = window.setTimeout(() => showAdjacentStory(1), 7_000);
+    if (!viewerStory) return;
+    const duration = viewerStory.story_type === "video" ? null : 15_000;
+    if (duration === null) return;
+    const timer = window.setTimeout(() => showAdjacentStory(1), duration);
     return () => window.clearTimeout(timer);
   }, [showAdjacentStory, viewerStory]);
 
@@ -220,6 +230,22 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
       .catch((err) => setError(err instanceof Error ? err.message : "Unable to load story comments."));
     return () => {
       cancelled = true;
+    };
+  }, [viewerStory]);
+
+  useEffect(() => {
+    if (!viewerStory) return;
+    const channel = subscribeToStoryViews((payload) => {
+      const event = payload as { eventType?: string; new?: { story_id?: string }; old?: { story_id?: string } };
+      const row = event.new ?? event.old;
+      if (row?.story_id === viewerStory.id) {
+        void getStoryViews(viewerStory.id).then((result) => {
+          if (!result.error) setViewCount(result.data?.length ?? 0);
+        });
+      }
+    });
+    return () => {
+      void channel.unsubscribe();
     };
   }, [viewerStory]);
 
@@ -333,8 +359,25 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
         <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-[#071827] p-5 shadow-2xl">
             <div className="flex items-center justify-between"><div><h2 className="text-lg font-semibold">Text story</h2><p className="text-xs text-slate-500">Visible for 24 hours</p></div><button type="button" onClick={() => setComposer(null)} className="rounded-full p-2 text-slate-400 hover:bg-white/5"><X className="h-5 w-5" /></button></div>
-            <div className="mt-5 flex min-h-72 items-center justify-center rounded-3xl bg-gradient-to-br from-[#0b2f49] via-[#0a4b61] to-[#075e72] p-8">
-              <textarea value={text} onChange={(event) => setText(event.target.value)} maxLength={400} placeholder="Type your story…" className="min-h-44 w-full resize-none bg-transparent text-center text-2xl font-semibold leading-9 text-white outline-none placeholder:text-white/35" />
+            <div className="mt-5 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-inner">
+              <div className={`flex min-h-72 items-center justify-center p-8 text-center ${textBackground === "ocean" ? "bg-gradient-to-br from-[#0b2f49] via-[#0a4b61] to-[#075e72]" : textBackground === "sunset" ? "bg-gradient-to-br from-[#7c2d12] via-[#be123c] to-[#7c3aed]" : textBackground === "midnight" ? "bg-gradient-to-br from-[#020617] via-[#172554] to-[#312e81]" : "bg-white"}`}>
+                <textarea value={text} onChange={(event) => setText(event.target.value)} maxLength={400} placeholder="Type your story…" style={{ color: textColor, fontSize: `${textFontSize}px` }} className="min-h-44 w-full resize-none bg-transparent text-center font-semibold leading-tight outline-none placeholder:opacity-40" />
+              </div>
+              <div className="grid gap-3 border-t border-slate-200 bg-slate-50 p-3 sm:grid-cols-3">
+                <label className="text-xs font-medium text-slate-600">Text size
+                  <select value={textFontSize} onChange={(event) => setTextFontSize(Number(event.target.value))} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">
+                    {[22,26,30,36,44].map((size) => <option key={size} value={size}>{size}px</option>)}
+                  </select>
+                </label>
+                <label className="text-xs font-medium text-slate-600">Background
+                  <select value={textBackground} onChange={(event) => setTextBackground(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">
+                    <option value="ocean">Ocean</option><option value="sunset">Sunset</option><option value="midnight">Midnight</option><option value="clean">Clean white</option>
+                  </select>
+                </label>
+                <label className="text-xs font-medium text-slate-600">Text color
+                  <input type="color" value={textColor} onChange={(event) => setTextColor(event.target.value)} className="mt-1 h-9 w-full rounded-xl border border-slate-200 bg-white p-1" />
+                </label>
+              </div>
             </div>
             <div className="mt-4 flex items-center justify-between"><span className="text-xs text-slate-500">{text.length}/400</span><button type="button" disabled={!text.trim() || busy} onClick={() => void publishText()} className="flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950 disabled:opacity-40"><Send className="h-4 w-4" /> {busy ? "Publishing…" : "Publish"}</button></div>
           </div>
@@ -348,7 +391,15 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
             <div className="absolute inset-x-3 top-2 z-20 flex gap-1" aria-label={`Story ${viewerIndex + 1} of ${viewerStories.length}`}>
               {viewerStories.map((story, index) => <span key={story.id} className={`h-1 flex-1 rounded-full ${index <= viewerIndex ? "bg-white" : "bg-white/30"}`} />)}
             </div>
-            {viewerStory.story_type === "text" ? <div className="flex h-full w-full items-center justify-center p-10 text-center text-3xl font-semibold leading-[1.35] text-white">{viewerStory.body}</div> : <StoryMedia key={viewerStory.id} story={viewerStory} className="h-full w-full object-contain" onEnded={() => showAdjacentStory(1)} />}
+            {viewerStory.story_type === "text" ? <div
+  className={`flex h-full w-full items-center justify-center p-10 text-center font-semibold leading-tight ${
+    viewerStory.text_background === "sunset" ? "bg-gradient-to-br from-[#7c2d12] via-[#be123c] to-[#7c3aed]" :
+    viewerStory.text_background === "midnight" ? "bg-gradient-to-br from-[#020617] via-[#172554] to-[#312e81]" :
+    viewerStory.text_background === "clean" ? "bg-white" :
+    "bg-gradient-to-br from-[#0b2f49] via-[#0a4b61] to-[#075e72]"
+  }`}
+  style={{ fontSize: `${viewerStory.text_font_size || 30}px`, color: viewerStory.text_color || "#ffffff" }}
+>{viewerStory.body}</div> : <StoryMedia key={viewerStory.id} story={viewerStory} className="h-full w-full object-contain" onEnded={() => showAdjacentStory(1)} />}
             <button type="button" aria-label="Previous story" onClick={() => showAdjacentStory(-1)} disabled={viewerIndex <= 0} className="absolute bottom-0 left-0 top-16 z-10 w-1/3 disabled:pointer-events-none" />
             <button type="button" aria-label="Next story" onClick={() => showAdjacentStory(1)} className="absolute bottom-0 right-0 top-16 z-10 w-1/3" />
             <div className="absolute inset-x-0 top-0 z-30 mt-2 flex items-center gap-3 bg-gradient-to-b from-black/75 to-transparent p-4">
