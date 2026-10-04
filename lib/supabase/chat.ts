@@ -279,6 +279,7 @@ export async function sendMessage(input: {
   body: string;
   messageType?: string;
   replyToId?: string | null;
+  oneTimeView?: boolean;
 }) {
   const body = input.body.trim();
   if (!body) throw new Error("Message cannot be empty.");
@@ -299,12 +300,40 @@ export async function sendMessage(input: {
         body,
         message_type: input.messageType ?? "text",
         reply_to_id: input.replyToId ?? null,
+        one_time_view: input.oneTimeView ?? false,
       })
       .select("*")
       .single();
   };
 
   return retryAfterJwtClockSkew(runInsert, (result) => (result as { error?: unknown }).error);
+}
+
+export async function getMessageViews(messageIds: string[]) {
+  if (messageIds.length === 0) return { data: [] as Array<{ message_id: string; user_id: string; viewed_at: string }>, error: null };
+  const userId = await currentUserId();
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("message_views")
+    .select("message_id,user_id,viewed_at")
+    .in("message_id", messageIds)
+    .eq("user_id", userId);
+  return { data: (data ?? []) as Array<{ message_id: string; user_id: string; viewed_at: string }>, error };
+}
+
+export async function markMessageViewed(messageId: string) {
+  const supabase = createClient();
+  const userId = await currentUserId();
+  const { data, error } = await supabase
+    .from("message_views")
+    .upsert(
+      { message_id: messageId, user_id: userId, viewed_at: new Date().toISOString() },
+      { onConflict: "message_id,user_id" },
+    )
+    .select("message_id,user_id,viewed_at")
+    .single();
+  if (error) throw error;
+  return data as { message_id: string; user_id: string; viewed_at: string };
 }
 
 export async function updateMessage(messageId: string, body: string) {
@@ -519,6 +548,7 @@ async function createAttachmentMessage(input: {
   fileSize: number;
   messageType: "file" | "voice";
   body: string;
+  oneTimeView?: boolean;
 }) {
   const supabase = createClient();
   const userId = await currentUserId();
@@ -530,6 +560,7 @@ async function createAttachmentMessage(input: {
       sender_id: userId,
       body: input.body,
       message_type: input.messageType,
+      one_time_view: input.oneTimeView ?? false,
     })
     .select("*")
     .single();
@@ -571,7 +602,7 @@ async function createAttachmentMessage(input: {
   return { message: message as MessageRow, attachment: attachment as AttachmentRow };
 }
 
-export async function uploadChatFile(conversationId: string, file: File) {
+export async function uploadChatFile(conversationId: string, file: File, oneTimeView = false) {
   const supabase = createClient();
   const userId = await currentUserId();
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
@@ -592,6 +623,7 @@ export async function uploadChatFile(conversationId: string, file: File) {
       fileSize: file.size,
       messageType: "file",
       body: file.name,
+      oneTimeView,
     });
   } catch (error) {
     await supabase.storage.from("chat-attachments").remove([path]);
@@ -868,5 +900,4 @@ export async function uploadStoryMedia(file: File) {
   }
   return data as StoryRow;
 }
-
 
