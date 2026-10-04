@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Bluetooth, Keyboard, Mic, MicOff, Phone, PhoneOff, UserPlus, Users, Volume2, Video, VideoOff } from "lucide-react";
+import { getCallAudioContext, unlockCallAudio } from "@/hooks/use-web-rtc-call";
 import type { ActiveCall, CallInvite } from "@/hooks/use-web-rtc-call";
 import type { ProfileRow } from "@/lib/supabase/types";
 
@@ -19,9 +20,11 @@ function canSelectAudioOutput() {
 
 function playTone(frequency = 520, durationMs = 120) {
   try {
+    unlockCallAudio();
+    const sharedContext = getCallAudioContext();
     const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!AudioContextClass) return;
-    const context = new AudioContextClass();
+    if (!AudioContextClass && !sharedContext) return;
+    const context = sharedContext || new AudioContextClass!();
     const oscillator = context.createOscillator();
     const gain = context.createGain();
     oscillator.frequency.value = frequency;
@@ -41,15 +44,15 @@ function playTone(frequency = 520, durationMs = 120) {
 
 function startRingtone() {
   let stopped = false;
-  let context: AudioContext | null = null;
+  let context: AudioContext | null = getCallAudioContext();
   let timer: number | null = null;
 
   const beep = () => {
     if (stopped) return;
     try {
       const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!AudioContextClass) return;
-      context ??= new AudioContextClass();
+      if (!AudioContextClass && !context) return;
+      context ??= new AudioContextClass!();
       const play = async () => {
         try {
           if (context?.state === "suspended") await context.resume();
