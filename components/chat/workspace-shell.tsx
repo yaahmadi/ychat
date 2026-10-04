@@ -493,6 +493,9 @@ export function WorkspaceShell() {
 
       if (event.eventType !== "INSERT") return;
       setMessages((current) => current.some((message) => message.id === incoming.id) ? current : [...current, incoming]);
+      if (incoming.sender_id !== userId && incoming.conversation_id !== activeConversationId) {
+        setUnreadCounts((current) => ({ ...current, [incoming.conversation_id]: (current[incoming.conversation_id] ?? 0) + 1 }));
+      }
 
       if (incoming.sender_id !== userId && "Notification" in window && Notification.permission === "granted" && document.hidden) {
         const sender = profiles.find((profile) => profile.id === incoming.sender_id)?.display_name || "New message";
@@ -585,13 +588,16 @@ export function WorkspaceShell() {
     let disposed = false;
 
     async function loadUserState() {
-      const [callsResult, conversationStateResult] = await Promise.all([
+      const [callsResult, conversationStateResult, unreadResult] = await Promise.all([
         getCallLogs(),
         getConversationUserStates(),
+        getUnreadCounts(),
       ]);
       if (disposed) return;
       if (callsResult.error) setError(callsResult.error.message);
       if (conversationStateResult.error) setError(conversationStateResult.error.message);
+      if (unreadResult.error) setError(unreadResult.error.message);
+      setUnreadCounts(Object.fromEntries((unreadResult.data ?? []).map((row) => [row.conversation_id, Number(row.unread_count)])));
 
       const callRows = callsResult.data ?? [];
       if (callRows.length > 0) {
@@ -618,6 +624,7 @@ export function WorkspaceShell() {
           ...stateRows.filter((row) => row.deleted_at).map((row) => row.conversation_id),
         ]),
       ]);
+      setFavoriteConversationIds(stateRows.filter((row) => row.favorite_at).map((row) => row.conversation_id));
     }
 
     void loadUserState();
@@ -709,7 +716,14 @@ export function WorkspaceShell() {
   }
 
   const searchQuery = search.trim().toLowerCase();
-  const visibleConversations = conversations.filter((conversation) => !archivedConversationIds.includes(conversation.id) && !deletedConversationIds.includes(conversation.id));
+  const baseConversations = conversations.filter((conversation) => !deletedConversationIds.includes(conversation.id));
+  const visibleConversations = baseConversations.filter((conversation) => {
+    if (chatFilter === "archived") return archivedConversationIds.includes(conversation.id);
+    if (archivedConversationIds.includes(conversation.id)) return false;
+    if (chatFilter === "unread") return (unreadCounts[conversation.id] ?? 0) > 0;
+    if (chatFilter === "favorites") return favoriteConversationIds.includes(conversation.id);
+    return true;
+  });
   const filteredConversations = searchQuery
     ? visibleConversations.filter((conversation) => getConversationName(conversation).toLowerCase().includes(searchQuery))
     : visibleConversations;
@@ -782,6 +796,8 @@ export function WorkspaceShell() {
     setMessages([]);
     setError(null);
     setActiveConversationId(conversationId);
+    setUnreadCounts((current) => ({ ...current, [conversationId]: 0 }));
+    void markConversationRead(conversationId).catch(() => undefined);
     setView("chats");
     setEmojiOpen(false);
     setStickerOpen(false);
