@@ -67,6 +67,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
   const [textFontSize, setTextFontSize] = useState(30);
   const [textBackground, setTextBackground] = useState("ocean");
   const [textColor, setTextColor] = useState("#ffffff");
+  const backgroundTextColor = textBackground === "clean" ? "#0f172a" : textColor;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewerStory, setViewerStory] = useState<StoryRow | null>(null);
@@ -292,7 +293,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto bg-[#06101d] p-4 pb-24 pt-[max(1rem,env(safe-area-inset-top))] sm:p-6 lg:p-8">
+    <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--ychat-bg)] p-4 pb-24 pt-[max(1rem,env(safe-area-inset-top))] sm:p-6 lg:p-8">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -346,7 +347,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
                         latest.text_background === "clean" ? "bg-white" :
                         "bg-gradient-to-br from-[#0b2f49] via-[#0a4b61] to-[#075e72]"
                       }`}
-                      style={{ fontSize: `${Math.min(latest.text_font_size || 30, 52)}px`, color: latest.text_color || "#ffffff" }}
+                      style={{ fontSize: `${Math.min(latest.text_font_size || 30, 52)}px`, color: latest.text_background === "clean" ? "#0f172a" : (latest.text_color || "#ffffff") }}
                     >{latest.body}</div>
                   ) : (
                     <StoryMedia key={latest.id} story={latest} className="h-full w-full object-cover" />
@@ -372,7 +373,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
             <div className="flex items-center justify-between"><div><h2 className="text-lg font-semibold">Text story</h2><p className="text-xs text-slate-500">Visible for 24 hours</p></div><button type="button" onClick={() => setComposer(null)} className="rounded-full p-2 text-slate-400 hover:bg-white/5"><X className="h-5 w-5" /></button></div>
             <div className="mt-5 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-inner">
               <div className={`flex min-h-72 items-center justify-center p-8 text-center ${textBackground === "ocean" ? "bg-gradient-to-br from-[#0b2f49] via-[#0a4b61] to-[#075e72]" : textBackground === "sunset" ? "bg-gradient-to-br from-[#7c2d12] via-[#be123c] to-[#7c3aed]" : textBackground === "midnight" ? "bg-gradient-to-br from-[#020617] via-[#172554] to-[#312e81]" : "bg-white"}`}>
-                <textarea value={text} onChange={(event) => setText(event.target.value)} maxLength={400} placeholder="Type your story…" style={{ color: textColor, fontSize: `${textFontSize}px` }} className="min-h-44 w-full resize-none bg-transparent text-center font-semibold leading-tight outline-none placeholder:opacity-40" />
+                <textarea value={text} onChange={(event) => setText(event.target.value)} maxLength={400} placeholder="Type your story…" style={{ color: backgroundTextColor, fontSize: `${textFontSize}px` }} className="min-h-44 w-full resize-none bg-transparent text-center font-semibold leading-tight outline-none placeholder:opacity-40" />
               </div>
               <div className="grid gap-3 border-t border-slate-200 bg-slate-50 p-3 sm:grid-cols-3">
                 <label className="text-xs font-medium text-slate-600">Text size
@@ -381,7 +382,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
                   </select>
                 </label>
                 <label className="text-xs font-medium text-slate-600">Background
-                  <select value={textBackground} onChange={(event) => setTextBackground(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">
+                  <select value={textBackground} onChange={(event) => { const value = event.target.value; setTextBackground(value); if (value === "clean") setTextColor("#0f172a"); else if (textColor === "#0f172a") setTextColor("#ffffff"); }} className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800">
                     <option value="ocean">Ocean</option><option value="sunset">Sunset</option><option value="midnight">Midnight</option><option value="clean">Clean white</option>
                   </select>
                 </label>
@@ -409,7 +410,7 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
     viewerStory.text_background === "clean" ? "bg-white" :
     "bg-gradient-to-br from-[#0b2f49] via-[#0a4b61] to-[#075e72]"
   }`}
-  style={{ fontSize: `${viewerStory.text_font_size || 30}px`, color: viewerStory.text_color || "#ffffff" }}
+  style={{ fontSize: `${viewerStory.text_font_size || 30}px`, color: viewerStory.text_background === "clean" ? "#0f172a" : (viewerStory.text_color || "#ffffff") }}
 >{viewerStory.body}</div> : <StoryMedia key={viewerStory.id} story={viewerStory} className="h-full w-full object-contain" onEnded={() => showAdjacentStory(1)} />}
             <button type="button" aria-label="Previous story" onClick={() => showAdjacentStory(-1)} disabled={viewerIndex <= 0} className="absolute bottom-0 left-0 top-16 z-10 w-1/3 disabled:pointer-events-none" />
             <button type="button" aria-label="Next story" onClick={() => showAdjacentStory(1)} className="absolute bottom-0 right-0 top-16 z-10 w-1/3" />
