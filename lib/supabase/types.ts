@@ -36,6 +36,9 @@ export type MessageRow = {
   message_type: string;
   reply_to_id?: string | null;
   edited_at?: string | null;
+  deleted_at?: string | null;
+  deleted_for_everyone?: boolean;
+  one_time_view?: boolean;
   created_at?: string | null;
 };
 
@@ -87,6 +90,9 @@ export type StoryRow = {
   media_path?: string | null;
   created_at: string;
   expires_at: string;
+  text_font_size?: number | null;
+  text_background?: string | null;
+  text_color?: string | null;
 };
 
 export type CallLogRow = {
@@ -96,6 +102,7 @@ export type CallLogRow = {
   title: string;
   mode: "audio" | "video";
   direction: "incoming" | "outgoing" | "missed";
+  duration_seconds?: number | null;
   created_at: string;
 };
 
