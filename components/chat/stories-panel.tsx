@@ -336,10 +336,18 @@ export function StoriesPanel({ profiles, userId }: { profiles: ProfileRow[]; use
             const latest = items[0];
             if (!latest) return null;
             return (
-              <button key={profileId} type="button" onClick={() => setViewerStory(latest)} className="overflow-hidden rounded-3xl border border-white/10 bg-[#0a1b2d] text-left transition hover:border-cyan-400/25">
+              <button key={profileId} type="button" onClick={() => void openStory(latest)} className="overflow-hidden rounded-3xl border border-white/10 bg-[#0a1b2d] text-left transition hover:border-cyan-400/25">
                 <div className="relative aspect-[4/5] overflow-hidden bg-gradient-to-br from-[#0c2840] via-[#0b3650] to-[#075e72]">
                   {latest.story_type === "text" ? (
-                    <div className="flex h-full items-center justify-center p-8 text-center text-2xl font-semibold leading-9 text-white">{latest.body}</div>
+                    <div
+                      className={`flex h-full items-center justify-center p-8 text-center font-semibold leading-tight ${
+                        latest.text_background === "sunset" ? "bg-gradient-to-br from-[#7c2d12] via-[#be123c] to-[#7c3aed]" :
+                        latest.text_background === "midnight" ? "bg-gradient-to-br from-[#020617] via-[#172554] to-[#312e81]" :
+                        latest.text_background === "clean" ? "bg-white" :
+                        "bg-gradient-to-br from-[#0b2f49] via-[#0a4b61] to-[#075e72]"
+                      }`}
+                      style={{ fontSize: `${Math.min(latest.text_font_size || 30, 52)}px`, color: latest.text_color || "#ffffff" }}
+                    >{latest.body}</div>
                   ) : (
                     <StoryMedia key={latest.id} story={latest} className="h-full w-full object-cover" />
                   )}
