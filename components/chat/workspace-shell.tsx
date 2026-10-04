@@ -355,6 +355,7 @@ export function WorkspaceShell() {
   const [messageSelectMode, setMessageSelectMode] = useState(false);
   const [selectedMessageIds, setSelectedMessageIds] = useState<string[]>([]);
   const [viewedMessageIds, setViewedMessageIds] = useState<string[]>([]);
+  const [revealedMessageIds, setRevealedMessageIds] = useState<string[]>([]);
   const [oneTimeViewEnabled, setOneTimeViewEnabled] = useState(false);
 
   async function refreshConversations(preferredId?: string) {
@@ -1009,6 +1010,7 @@ export function WorkspaceShell() {
     try {
       await markMessageViewed(message.id);
       setViewedMessageIds((current) => current.includes(message.id) ? current : [...current, message.id]);
+      setRevealedMessageIds((current) => current.includes(message.id) ? current : [...current, message.id]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to open this view-once message.");
     }
@@ -1624,7 +1626,7 @@ export function WorkspaceShell() {
                                     <p className="truncate text-[11px] text-slate-500 dark:text-white/60">{quoted.message_type === "voice" ? "🎙️ Voice message" : quoted.message_type === "file" ? "📎 File" : quoted.body}</p>
                                   </button>
                                 )}
-                                {message.one_time_view && message.sender_id !== userId && viewedMessageIds.includes(message.id) ? (
+                                {message.one_time_view && message.sender_id !== userId && viewedMessageIds.includes(message.id) && !revealedMessageIds.includes(message.id) ? (
                                   <div className="flex min-h-10 items-center gap-2 px-2 py-2 text-sm text-slate-500"><LockKeyhole className="h-4 w-4" /> Viewed once</div>
                                 ) : message.one_time_view && message.sender_id !== userId ? (
                                   <button type="button" onClick={() => void openOneTimeMessage(message)} className="flex min-h-12 items-center gap-3 rounded-xl bg-cyan-500/10 px-3 py-2 text-left text-sm font-semibold text-cyan-700 hover:bg-cyan-500/15 dark:text-cyan-200">
