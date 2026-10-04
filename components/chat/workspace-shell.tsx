@@ -52,6 +52,7 @@ import {
   getAttachmentDownloadUrl,
   getAttachments,
   getCallLogs,
+  subscribeToCallLogs,
   getContactProfiles,
   getConversationUserStates,
   getConversations,
@@ -678,6 +679,30 @@ export function WorkspaceShell() {
     void loadUserState();
     return () => {
       disposed = true;
+    };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const channel = subscribeToCallLogs(userId, (payload) => {
+      const event = payload as { eventType?: string; new?: { id?: string; title?: string; mode?: CallMode; direction?: string; created_at?: string; conversation_id?: string | null; duration_seconds?: number | null } };
+      const row = event.new;
+      if (!row?.id || event.eventType !== "INSERT") return;
+      setCallLogs((current) => {
+        if (current.some((item) => item.id === row.id)) return current;
+        return [{
+          id: row.id,
+          title: row.title || "Ychat call",
+          mode: row.mode === "video" ? "video" : "audio",
+          direction: row.direction === "missed" ? "missed" : row.direction === "incoming" ? "incoming" : "outgoing",
+          createdAt: row.created_at || new Date().toISOString(),
+          conversationId: row.conversation_id ?? undefined,
+          durationSeconds: row.duration_seconds ?? null,
+        }, ...current].slice(0, 80);
+      });
+    });
+    return () => {
+      void channel.unsubscribe();
     };
   }, [userId]);
 
