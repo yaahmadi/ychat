@@ -18,7 +18,11 @@ End-to-end encryption beyond the existing transport security is a separate secur
 
 ### Existing authentication
 
-Keep Apple, Google, email/password, and mobile OTP. Each provider continues to create a normal Supabase user/session. The web, iOS Capacitor shell, and Android Capacitor shell use the same hosted YChat application and callback flow.
+Keep Apple, Google, and email/password as the core account/login methods. Phone number is optional profile data and phone OTP verification is optional/provider-dependent; lack of an SMS provider must not block account creation, App Store review, or normal YChat use. The web, iOS Capacitor shell, and Android Capacitor shell use the same hosted YChat application and callback flow.
+
+### Optional phone verification
+
+If a phone delivery provider is configured, YChat may offer optional phone verification after account creation. OTP generation, expiration, retry limits, and verification may run on YChat's own server, but delivery to a real phone number still requires an external SMS/WhatsApp transport or a physical modem/SIM. The product must not claim free SMS delivery unless an actual no-cost delivery path exists.
 
 ### QR linking model
 
@@ -97,7 +101,7 @@ When repeated timeouts/high latency are detected, prioritize text and metadata, 
 A release is eligible only when:
 
 1. Production web build succeeds and the canonical URL serves the expected commit.
-2. Apple, Google, email/password, and configured mobile OTP flows are tested.
+2. Apple, Google, and email/password flows are tested successfully; optional phone verification is tested only when a delivery provider is configured and is not a release blocker.
 3. Reviewer/demo account is validated before iOS submission.
 4. iPad layout and primary chat flows pass.
 5. Android signed release installs and authenticates successfully.
@@ -122,8 +126,8 @@ Each subproject uses red-green-refactor tests before implementation. API tests c
 
 ## Delivery Order
 
-1. Finish the current App Store rejection repair: Apple-login UI visibility, OAuth functional test, reviewer account, privacy metadata, iPad verification.
-2. Ship QR/device linking as the next independently testable feature set.
+1. Finish the current App Store rejection repair: Apple-login functional test, reviewer account, privacy metadata, iPad verification, and Build 3 submission.
+2. Ship QR/device linking as the next independently testable feature set while keeping phone verification optional.
 3. Ship message/network reliability improvements.
 4. Build and release synchronized web/iOS/Android versions.
 5. Design end-to-end encryption separately before claiming Signal-class cryptographic guarantees.
