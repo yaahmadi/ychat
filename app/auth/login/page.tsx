@@ -297,11 +297,11 @@ export default function LoginPage() {
       <div className="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white/95 shadow-slate-900/10 dark:border-white/10 dark:bg-[#07111f]/95 p-4 shadow-2xl shadow-cyan-950/20 sm:p-5 md:max-w-lg lg:max-w-md">
         <div className="flex justify-center">
           <Image
-            src="/brand/yama-logo.png"
-            alt="Yama Ahmadi Services Informatiques"
-            width={220}
-            height={75}
-            className="h-10 w-auto max-w-[220px] object-contain sm:h-12"
+            src="/icon-192.png"
+            alt="YChat"
+            width={72}
+            height={72}
+            className="h-16 w-16 rounded-2xl sm:h-[72px] sm:w-[72px]"
             priority
           />
         </div>
