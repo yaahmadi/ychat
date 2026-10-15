@@ -529,3 +529,28 @@ html[data-theme="light"] .ychat-app-shell .bg-black\/30 {
     padding-right: max(0px, env(safe-area-inset-right));
   }
 }
+
+
+/* Sign in with Apple must retain Apple's white-on-black treatment
+   even when Ychat's adaptive light-theme text overrides are active. */
+.ychat-apple-login {
+  background: #000 !important;
+  color: #fff !important;
+  border-color: rgba(148, 163, 184, 0.75) !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.20) !important;
+}
+
+.ychat-apple-login,
+.ychat-apple-login * {
+  color: #fff !important;
+}
+
+.ychat-apple-login:hover:not(:disabled) {
+  background: #171717 !important;
+}
+
+.ychat-apple-login:disabled {
+  background: #262626 !important;
+  color: #fff !important;
+  opacity: 0.78;
+}
