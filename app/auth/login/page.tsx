@@ -193,6 +193,12 @@ export default function LoginPage() {
 
   async function verifyPhoneOtp(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (!otpSent || otp.trim().length < 6) {
+      setError("Enter the 6-digit SMS verification code.");
+      return;
+    }
+
     setLoading(true);
     clearNotices();
 
@@ -289,27 +295,15 @@ export default function LoginPage() {
   return (
     <main className="min-h-dvh overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(8,169,196,0.10),_transparent_38%),#f7fafc] px-2.5 py-2.5 text-slate-900 dark:bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.18),_transparent_35%),#030712] dark:text-[var(--ychat-text)] sm:flex sm:items-center sm:justify-center sm:px-5 sm:py-5">
       <div className="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white/95 shadow-slate-900/10 dark:border-white/10 dark:bg-[#07111f]/95 p-4 shadow-2xl shadow-cyan-950/20 sm:p-5 md:max-w-lg lg:max-w-md">
-        <div className="flex items-center gap-2.5">
+        <div className="flex justify-center">
           <Image
-            src="/icon-192.png"
-            alt="Ychat"
-            width={42}
-            height={42}
-            className="h-10 w-10 rounded-xl sm:h-11 sm:w-11"
+            src="/brand/yama-logo.png"
+            alt="Yama Ahmadi Services Informatiques"
+            width={220}
+            height={75}
+            className="h-10 w-auto max-w-[220px] object-contain sm:h-12"
             priority
           />
-          <div className="min-w-0">
-            <Image
-              src="/brand/yama-logo.png"
-              alt="Yama Ahmadi Services Informatiques"
-              width={170}
-              height={58}
-              className="h-7 w-auto max-w-full object-contain object-left sm:h-8"
-            />
-            <p className="mt-0.5 text-[9px] uppercase tracking-[0.22em] text-cyan-400">
-              Ychat
-            </p>
-          </div>
         </div>
 
         <div className="mt-3">
@@ -457,7 +451,17 @@ export default function LoginPage() {
             </button>
           </form>
         ) : (
-          <form onSubmit={verifyPhoneOtp} className="mt-3 space-y-2.5">
+          <form
+            onSubmit={(event) => {
+              if (otpSent) {
+                void verifyPhoneOtp(event);
+              } else {
+                event.preventDefault();
+                void requestPhoneOtp();
+              }
+            }}
+            className="mt-3 space-y-2.5"
+          >
             {mode === "signup" && (
               <label className="block text-xs text-slate-300">
                 <span className="mb-1 block">Display name</span>
