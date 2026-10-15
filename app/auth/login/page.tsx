@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import { FormEvent, useState } from "react";
@@ -325,7 +325,7 @@ export default function LoginPage() {
           type="button"
           onClick={handleAppleLogin}
           disabled={appleLoading || googleLoading || loading}
-          className="mt-3 flex w-full items-center justify-center gap-2.5 rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="mt-3 flex w-full items-center justify-center gap-2.5 rounded-xl border border-slate-400/70 bg-black px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-black/20 transition hover:bg-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-slate-200 disabled:opacity-80"
         >
           <span
             aria-hidden="true"
