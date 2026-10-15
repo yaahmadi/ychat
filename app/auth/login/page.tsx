@@ -3,10 +3,8 @@
 import Image from "next/image";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Phone, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-type AuthMethod = "email" | "phone";
 type AccountMode = "signin" | "signup";
 
 function getRedirectBase() {
@@ -19,12 +17,10 @@ function getRedirectBase() {
   const origin = window.location.origin.replace(/\/$/, "");
   const host = window.location.hostname;
 
-  // Local development must stay on localhost.
   if (host === "localhost" || host === "127.0.0.1") {
     return origin;
   }
 
-  // Production uses the canonical Ychat URL: https://ychat.yamaahmadi.com.
   return configured || origin;
 }
 
@@ -48,23 +44,15 @@ function friendlyAuthError(value: unknown) {
     return "New account signup is disabled in Supabase Authentication settings.";
   }
 
-  if (/sms|twilio|phone provider/i.test(message) && /error|invalid|failed/i.test(message)) {
-    return `${message} Check the Supabase Phone provider and Twilio Messaging Service configuration.`;
-  }
-
   return message;
 }
 
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<AccountMode>("signin");
-  const [method, setMethod] = useState<AuthMethod>("email");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
   const [error, setError] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("error");
@@ -73,10 +61,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
-
-  function normalizePhone(value: string) {
-    return value.replace(/[\s()-]/g, "");
-  }
 
   function clearNotices() {
     setError(null);
@@ -92,11 +76,10 @@ export default function LoginPage() {
       const supabase = createClient();
 
       if (mode === "signin") {
-        const { data, error: signInError } =
-          await supabase.auth.signInWithPassword({
-            email: email.trim(),
-            password,
-          });
+        const { data, error: signInError } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
 
         if (signInError) throw signInError;
         if (!data.session) throw new Error("No login session was created.");
@@ -135,105 +118,12 @@ export default function LoginPage() {
     }
   }
 
-  async function requestPhoneOtp() {
-    const normalized = normalizePhone(phone);
-
-    if (!normalized.startsWith("+") || normalized.length < 8) {
-      setError(
-        "Enter the number in international format, for example +33612345678.",
-      );
-      return;
-    }
-
-    if (mode === "signup" && !displayName.trim()) {
-      setError("Enter your display name before requesting the signup code.");
-      return;
-    }
-
-    setLoading(true);
-    clearNotices();
-
-    try {
-      const supabase = createClient();
-
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        phone: normalized,
-        options: {
-          shouldCreateUser: mode === "signup",
-          data:
-            mode === "signup"
-              ? { display_name: displayName.trim() || normalized }
-              : undefined,
-        },
-      });
-
-      if (otpError) throw otpError;
-
-      setOtpSent(true);
-      setMessage("Verification code sent by SMS.");
-    } catch (err) {
-      const text = friendlyAuthError(err);
-
-      if (
-        /user not found|signups? not allowed/i.test(
-          err instanceof Error ? err.message : "",
-        ) &&
-        mode === "signin"
-      ) {
-        setError(
-          "No phone account exists for this number. Choose Create account first.",
-        );
-      } else {
-        setError(text);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function verifyPhoneOtp(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!otpSent || otp.trim().length < 6) {
-      setError("Enter the 6-digit SMS verification code.");
-      return;
-    }
-
-    setLoading(true);
-    clearNotices();
-
-    try {
-      const supabase = createClient();
-
-      const { data, error: verifyError } = await supabase.auth.verifyOtp({
-        phone: normalizePhone(phone),
-        token: otp.trim(),
-        type: "sms",
-      });
-
-      if (verifyError) throw verifyError;
-      if (!data.session) {
-        throw new Error(
-          "Phone verification succeeded but no session was created.",
-        );
-      }
-
-      router.replace("/chat");
-      router.refresh();
-    } catch (err) {
-      setError(friendlyAuthError(err));
-    } finally {
-      setLoading(false);
-    }
-  }
-
   async function handleAppleLogin() {
     setAppleLoading(true);
     clearNotices();
 
     try {
       const supabase = createClient();
-
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "apple",
         options: {
@@ -254,7 +144,6 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
-
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -276,15 +165,6 @@ export default function LoginPage() {
     setMode((current) => (current === "signin" ? "signup" : "signin"));
     clearNotices();
     setPassword("");
-    setOtp("");
-    setOtpSent(false);
-  }
-
-  function changeMethod(next: AuthMethod) {
-    setMethod(next);
-    clearNotices();
-    setOtp("");
-    setOtpSent(false);
   }
 
   const inputClass =
@@ -294,7 +174,7 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-dvh overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(8,169,196,0.10),_transparent_38%),#f7fafc] px-2.5 py-2.5 text-slate-900 dark:bg-[radial-gradient(circle_at_top,_rgba(34,211,238,0.18),_transparent_35%),#030712] dark:text-[var(--ychat-text)] sm:flex sm:items-center sm:justify-center sm:px-5 sm:py-5">
-      <div className="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white/95 shadow-slate-900/10 dark:border-white/10 dark:bg-[#07111f]/95 p-4 shadow-2xl shadow-cyan-950/20 sm:p-5 md:max-w-lg lg:max-w-md">
+      <div className="mx-auto w-full max-w-md rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-2xl shadow-cyan-950/20 dark:border-white/10 dark:bg-[#07111f]/95 sm:p-5 md:max-w-lg lg:max-w-md">
         <div className="flex justify-center">
           <Image
             src="/icon-192.png"
@@ -307,11 +187,11 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-3">
-          <h1 className="text-2xl font-semibold leading-tight text-slate-900 sm:text-[26px] dark:text-slate-100">
+          <h1 className="text-2xl font-semibold leading-tight text-slate-900 dark:text-slate-100 sm:text-[26px]">
             {mode === "signin" ? "Welcome back" : "Create account"}
           </h1>
-          <p className="mt-1 text-xs text-slate-600 sm:text-sm dark:text-slate-400">
-            Apple, Google, email/password, or mobile number.
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 sm:text-sm">
+            Continue with Apple, Google, or email.
           </p>
         </div>
 
@@ -321,10 +201,7 @@ export default function LoginPage() {
           disabled={appleLoading || googleLoading || loading}
           className="ychat-apple-login mt-3 flex w-full items-center justify-center gap-2.5 rounded-xl border border-slate-400/70 bg-black px-4 py-2.5 text-sm font-semibold shadow-lg shadow-black/20 transition hover:bg-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-slate-200 disabled:opacity-80"
         >
-          <span
-            aria-hidden="true"
-            className="text-xl leading-none"
-          >
+          <span aria-hidden="true" className="text-xl leading-none">
             
           </span>
           {appleLoading
@@ -356,200 +233,66 @@ export default function LoginPage() {
         <div className="my-3 flex items-center gap-3">
           <div className="h-px flex-1 bg-white/10" />
           <span className="text-[10px] uppercase tracking-widest text-slate-500">
-            or
+            or use email
           </span>
           <div className="h-px flex-1 bg-white/10" />
         </div>
 
-        <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1 dark:bg-[#0b1728]">
-          <button
-            type="button"
-            onClick={() => changeMethod("email")}
-            className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-medium sm:text-sm ${
-              method === "email"
-                ? "bg-cyan-500 text-slate-950"
-                : "text-slate-400"
-            }`}
-          >
-            <Mail className="h-4 w-4" />
-            Email
-          </button>
-          <button
-            type="button"
-            onClick={() => changeMethod("phone")}
-            className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-medium sm:text-sm ${
-              method === "phone"
-                ? "bg-cyan-500 text-slate-950"
-                : "text-slate-400"
-            }`}
-          >
-            <Phone className="h-4 w-4" />
-            Mobile
-          </button>
-        </div>
-
-        {method === "email" ? (
-          <form onSubmit={handleEmailSubmit} className="mt-3 space-y-2.5">
-            {mode === "signup" && (
-              <label className="block text-xs text-slate-700 dark:text-slate-300">
-                <span className="mb-1 block">Display name</span>
-                <input
-                  type="text"
-                  required
-                  value={displayName}
-                  onChange={(event) => setDisplayName(event.target.value)}
-                  className={inputClass}
-                  placeholder="Your name"
-                  autoComplete="name"
-                />
-              </label>
-            )}
-
-            <label className="block text-xs text-slate-300">
-              <span className="mb-1 block">Email</span>
+        <form onSubmit={handleEmailSubmit} className="space-y-2.5">
+          {mode === "signup" && (
+            <label className="block text-xs text-slate-700 dark:text-slate-300">
+              <span className="mb-1 block">Display name</span>
               <input
-                type="email"
+                type="text"
                 required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
+                value={displayName}
+                onChange={(event) => setDisplayName(event.target.value)}
                 className={inputClass}
-                placeholder="name@example.com"
-                autoComplete="email"
+                placeholder="Your name"
+                autoComplete="name"
               />
             </label>
+          )}
 
-            <label className="block text-xs text-slate-300">
-              <span className="mb-1 block">Password</span>
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className={inputClass}
-                placeholder={
-                  mode === "signin"
-                    ? "Enter your password"
-                    : "Choose a secure password"
-                }
-                autoComplete={
-                  mode === "signin" ? "current-password" : "new-password"
-                }
-              />
-            </label>
+          <label className="block text-xs text-slate-700 dark:text-slate-300">
+            <span className="mb-1 block">Email</span>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className={inputClass}
+              placeholder="name@example.com"
+              autoComplete="email"
+            />
+          </label>
 
-            <button
-              type="submit"
-              disabled={loading || googleLoading || appleLoading}
-              className={primaryButtonClass}
-            >
-              {loading
-                ? "Please wait..."
-                : mode === "signin"
-                  ? "Sign in"
-                  : "Create account"}
-            </button>
-          </form>
-        ) : (
-          <form
-            onSubmit={(event) => {
-              if (otpSent) {
-                void verifyPhoneOtp(event);
-              } else {
-                event.preventDefault();
-                void requestPhoneOtp();
-              }
-            }}
-            className="mt-3 space-y-2.5"
+          <label className="block text-xs text-slate-700 dark:text-slate-300">
+            <span className="mb-1 block">Password</span>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className={inputClass}
+              placeholder={mode === "signin" ? "Enter your password" : "Choose a secure password"}
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+            />
+          </label>
+
+          <button
+            type="submit"
+            disabled={loading || googleLoading || appleLoading}
+            className={primaryButtonClass}
           >
-            {mode === "signup" && (
-              <label className="block text-xs text-slate-300">
-                <span className="mb-1 block">Display name</span>
-                <input
-                  type="text"
-                  required
-                  value={displayName}
-                  onChange={(event) => setDisplayName(event.target.value)}
-                  className={inputClass}
-                  placeholder="Your name"
-                  autoComplete="name"
-                />
-              </label>
-            )}
-
-            <label className="block text-xs text-slate-300">
-              <span className="mb-1 block">Mobile number</span>
-              <input
-                type="tel"
-                required
-                value={phone}
-                disabled={otpSent}
-                onChange={(event) => setPhone(event.target.value)}
-                className={`${inputClass} disabled:opacity-60`}
-                placeholder="+33612345678"
-                autoComplete="tel"
-              />
-            </label>
-
-            {otpSent ? (
-              <>
-                <label className="block text-xs text-slate-300">
-                  <span className="mb-1 block">SMS verification code</span>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    required
-                    value={otp}
-                    onChange={(event) =>
-                      setOtp(event.target.value.replace(/\D/g, ""))
-                    }
-                    className={`${inputClass} text-center text-lg tracking-[.3em]`}
-                    placeholder="000000"
-                    autoComplete="one-time-code"
-                  />
-                </label>
-
-                <button
-                  type="submit"
-                  disabled={loading || otp.length < 6}
-                  className={primaryButtonClass}
-                >
-                  {loading ? "Verifying..." : "Verify & continue"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOtpSent(false);
-                    setOtp("");
-                    setMessage(null);
-                  }}
-                  className="w-full py-1 text-xs text-slate-400 hover:text-slate-900 dark:text-white"
-                >
-                  Use a different number
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void requestPhoneOtp()}
-                disabled={loading}
-                className={primaryButtonClass}
-              >
-                {loading
-                  ? "Sending code..."
-                  : mode === "signin"
-                    ? "Send login code"
-                    : "Send signup code"}
-              </button>
-            )}
-
-            <div className="flex gap-2 rounded-lg border border-cyan-500/10 bg-cyan-500/5 p-2 text-[10px] leading-4 text-slate-400 sm:text-xs">
-              <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" />
-              <span>SMS OTP requires Supabase Phone auth and a working Twilio provider.</span>
-            </div>
-          </form>
-        )}
+            {loading
+              ? "Please wait..."
+              : mode === "signin"
+                ? "Sign in"
+                : "Create account"}
+          </button>
+        </form>
 
         {error && (
           <div
