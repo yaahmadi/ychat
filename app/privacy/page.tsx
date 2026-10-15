@@ -34,7 +34,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">3. Authentication providers</h2>
             <p className="mt-2">
-              Ychat may allow sign-in through Google, email/password, and phone-based one-time passwords. These services may process information according to their own privacy policies. Ychat uses Supabase authentication infrastructure and may use an SMS provider for phone verification.
+              Ychat may allow sign-in through Apple, Google, email/password, and phone-based one-time passwords. These services may process information according to their own privacy policies. Ychat uses Supabase authentication infrastructure and may use an SMS provider for phone verification.
             </p>
           </section>
 

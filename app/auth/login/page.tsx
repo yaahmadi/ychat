@@ -41,7 +41,7 @@ function friendlyAuthError(value: unknown) {
   }
 
   if (/redirect|callback/i.test(message) && /not allowed|invalid/i.test(message)) {
-    return `${message} Check the Supabase Redirect URLs and Google OAuth callback settings.`;
+    return `${message} Check the Supabase Redirect URLs and OAuth provider callback settings.`;
   }
 
   if (/signups? not allowed/i.test(message)) {
@@ -72,6 +72,7 @@ export default function LoginPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   function normalizePhone(value: string) {
     return value.replace(/[\s()-]/g, "");
@@ -220,6 +221,27 @@ export default function LoginPage() {
     }
   }
 
+  async function handleAppleLogin() {
+    setAppleLoading(true);
+    clearNotices();
+
+    try {
+      const supabase = createClient();
+
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "apple",
+        options: {
+          redirectTo: `${getRedirectBase()}/auth/callback?next=/chat`,
+        },
+      });
+
+      if (oauthError) throw oauthError;
+    } catch (err) {
+      setError(friendlyAuthError(err));
+      setAppleLoading(false);
+    }
+  }
+
   async function handleGoogleLogin() {
     setGoogleLoading(true);
     clearNotices();
@@ -295,14 +317,33 @@ export default function LoginPage() {
             {mode === "signin" ? "Welcome back" : "Create account"}
           </h1>
           <p className="mt-1 text-xs text-slate-600 sm:text-sm dark:text-slate-400">
-            Google, email/password, or mobile number.
+            Apple, Google, email/password, or mobile number.
           </p>
         </div>
 
         <button
           type="button"
+          onClick={handleAppleLogin}
+          disabled={appleLoading || googleLoading || loading}
+          className="mt-3 flex w-full items-center justify-center gap-2.5 rounded-xl bg-black px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <span
+            aria-hidden="true"
+            className="text-xl leading-none"
+          >
+            
+          </span>
+          {appleLoading
+            ? "Connecting..."
+            : mode === "signin"
+              ? "Continue with Apple"
+              : "Sign up with Apple"}
+        </button>
+
+        <button
+          type="button"
           onClick={handleGoogleLogin}
-          disabled={googleLoading || loading}
+          disabled={appleLoading || googleLoading || loading}
           className="mt-3 flex w-full items-center justify-center gap-2.5 rounded-xl border border-white/10 bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:opacity-60"
         >
           <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" aria-hidden="true">
@@ -405,7 +446,7 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={loading || googleLoading}
+              disabled={loading || googleLoading || appleLoading}
               className={primaryButtonClass}
             >
               {loading
