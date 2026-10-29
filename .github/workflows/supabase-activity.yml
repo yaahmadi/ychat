@@ -1,0 +1,34 @@
+# Free-plan activity check for the Yama IT Chat Supabase project.
+# This performs an anonymous, read-only database request. RLS stays enabled;
+# it never reads private messages or uses a secret/service_role key.
+# Supabase does not guarantee that periodic API calls prevent auto-pausing.
+name: Yama IT Chat - Supabase Activity
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/supabase-activity.yml
+  schedule:
+    - cron: '17 2,10,18 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  database-read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      SUPABASE_URL: https://kpgwhdbicvybkwlgzrlo.supabase.co
+      SUPABASE_PUBLISHABLE_KEY: sb_publishable_9bDrdJGAjmz4ffXvsIPzsg_WBwJDaBT
+    steps:
+      - name: Lightweight RLS-protected database read
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail-with-body --silent --show-error --retry 2 --max-time 20 \
+            -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
+            -H "Accept: application/json" \
+            "${SUPABASE_URL}/rest/v1/profiles?select=id&limit=1" >/dev/null
+          echo "Supabase REST database read succeeded."
