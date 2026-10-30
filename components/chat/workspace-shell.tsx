@@ -1454,9 +1454,9 @@ export function WorkspaceShell() {
               <>
                 <div className="rounded-2xl border border-cyan-200/60 bg-cyan-50 p-4 dark:border-cyan-400/20 dark:bg-cyan-500/5">
                   <p className="font-semibold text-cyan-800 dark:text-cyan-200">Ychat plan</p>
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Your account is ready for plan and billing management. Billing is not connected to this self-hosted production server yet.</p>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">YChat is currently free. There are no active paid plans or subscription purchases in this version.</p>
                 </div>
-                <a href="mailto:support@yamaahmadi.fr?subject=Ychat%20subscription" className="block w-full rounded-xl bg-cyan-500 px-4 py-2.5 text-center text-sm font-semibold text-slate-950">Contact billing</a>
+                <p className="text-sm text-slate-500">No purchase is required to access YChat messaging features.</p>
               </>
             )}
             {settingsModal === "account" && (
@@ -2003,7 +2003,7 @@ export function WorkspaceShell() {
                   </div>
                 </div>
                 <SettingRow icon={<Users className="h-5 w-5" />} title="Linked devices" text="See the devices currently using your Ychat account and keep this session secure." action={<button type="button" onClick={() => setSettingsModal("linked-devices")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Manage</button>} />
-                <SettingRow icon={<Sparkles className="h-5 w-5" />} title="Subscription" text="Ychat plan, billing and premium features." action={<button type="button" onClick={() => setSettingsModal("subscription")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">View plan</button>} />
+                <SettingRow icon={<Sparkles className="h-5 w-5" />} title="Plan" text="YChat is free in this release; no subscription is required." action={<button type="button" onClick={() => setSettingsModal("subscription")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">View plan</button>} />
                 <SettingRow icon={<ShieldCheck className="h-5 w-5" />} title="Privacy" text="Control privacy, story visibility and communication permissions." action={<Link href="/privacy" className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Open</Link>} />
                 <SettingRow icon={<MessageCircle className="h-5 w-5" />} title="Account" text="Your Ychat ID, profile information and account security." action={<button type="button" onClick={() => setSettingsModal("account")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Account center</button>} />
                 <SettingRow icon={<HardDriveUpload className="h-5 w-5" />} title="Storage" text="Review local cache and shared media storage." action={<button type="button" onClick={() => void clearLocalStorageAndMedia()} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Manage</button>} />
