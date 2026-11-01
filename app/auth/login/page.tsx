@@ -64,7 +64,7 @@ export default function LoginPage() {
   const [appleLoading, setAppleLoading] = useState(false);
 
   useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
+    if (Capacitor.getPlatform() !== "ios") return;
 
     let disposed = false;
     let listener: { remove: () => Promise<void> } | undefined;
@@ -132,7 +132,7 @@ export default function LoginPage() {
     clearNotices();
 
     try {
-      const native = Capacitor.isNativePlatform();
+      const native = Capacitor.getPlatform() === "ios";
       const callback = native
         ? "com.yamaahmadi.ychat://auth/callback"
         : `${getRedirectBase()}/auth/callback?next=/chat`;
