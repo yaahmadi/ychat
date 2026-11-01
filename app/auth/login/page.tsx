@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+import { Capacitor } from "@capacitor/core";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -62,6 +63,99 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
 
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let disposed = false;
+    let listener: { remove: () => Promise<void> } | undefined;
+
+    async function registerCallback() {
+      const { App } = await import("@capacitor/app");
+      listener = await App.addListener("appUrlOpen", async ({ url }) => {
+        if (disposed) return;
+        let callback: URL;
+        try {
+          callback = new URL(url);
+        } catch {
+          return;
+        }
+
+        if (callback.protocol !== "com.yamaahmadi.ychat:" ||
+            callback.hostname !== "auth" ||
+            callback.pathname !== "/callback") return;
+
+        const { Browser } = await import("@capacitor/browser");
+        await Browser.close().catch(() => undefined);
+
+        const errorMessage = callback.searchParams.get("error_description") ||
+          callback.searchParams.get("error");
+        if (errorMessage) {
+          setError(errorMessage);
+          setAppleLoading(false);
+          setGoogleLoading(false);
+          return;
+        }
+
+        const code = callback.searchParams.get("code");
+        if (!code) {
+          setError("Authentication callback contained no code.");
+          setAppleLoading(false);
+          setGoogleLoading(false);
+          return;
+        }
+
+        try {
+          // Exchange in the original WebView, which owns the PKCE verifier.
+          const { error } = await createClient().auth.exchangeCodeForSession(code);
+          if (error) throw error;
+          router.replace("/chat");
+          router.refresh();
+        } catch (cause) {
+          setError(friendlyAuthError(cause));
+        } finally {
+          setAppleLoading(false);
+          setGoogleLoading(false);
+        }
+      });
+    }
+
+    void registerCallback().catch((cause) => setError(friendlyAuthError(cause)));
+    return () => {
+      disposed = true;
+      void listener?.remove();
+    };
+  }, [router]);
+
+  async function handleOAuth(provider: "apple" | "google") {
+    const setProviderLoading = provider === "apple" ? setAppleLoading : setGoogleLoading;
+    setProviderLoading(true);
+    clearNotices();
+
+    try {
+      const native = Capacitor.isNativePlatform();
+      const callback = native
+        ? "com.yamaahmadi.ychat://auth/callback"
+        : `${getRedirectBase()}/auth/callback?next=/chat`;
+      const { data, error } = await createClient().auth.signInWithOAuth({
+        provider,
+        options: {
+          redirectTo: callback,
+          skipBrowserRedirect: native,
+          ...(provider === "google" ? { queryParams: { prompt: "select_account" } } : {}),
+        },
+      });
+      if (error) throw error;
+      if (native) {
+        if (!data.url) throw new Error("Authentication provider URL was missing.");
+        const { Browser } = await import("@capacitor/browser");
+        await Browser.open({ url: data.url, presentationStyle: "popover" });
+      }
+    } catch (cause) {
+      setError(friendlyAuthError(cause));
+      setProviderLoading(false);
+    }
+  }
+
   function clearNotices() {
     setError(null);
     setMessage(null);
@@ -119,46 +213,11 @@ export default function LoginPage() {
   }
 
   async function handleAppleLogin() {
-    setAppleLoading(true);
-    clearNotices();
-
-    try {
-      const supabase = createClient();
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: "apple",
-        options: {
-          redirectTo: `${getRedirectBase()}/auth/callback?next=/chat`,
-        },
-      });
-
-      if (oauthError) throw oauthError;
-    } catch (err) {
-      setError(friendlyAuthError(err));
-      setAppleLoading(false);
-    }
+    await handleOAuth("apple");
   }
 
   async function handleGoogleLogin() {
-    setGoogleLoading(true);
-    clearNotices();
-
-    try {
-      const supabase = createClient();
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${getRedirectBase()}/auth/callback?next=/chat`,
-          queryParams: {
-            prompt: "select_account",
-          },
-        },
-      });
-
-      if (oauthError) throw oauthError;
-    } catch (err) {
-      setError(friendlyAuthError(err));
-      setGoogleLoading(false);
-    }
+    await handleOAuth("google");
   }
 
   function toggleMode() {
