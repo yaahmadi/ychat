@@ -1669,18 +1669,18 @@ export function WorkspaceShell() {
       <div className="mx-auto flex h-full max-w-[1800px]">
         <aside className="ychat-sidebar hidden w-[88px] shrink-0 flex-col justify-between border-r border-white/10 bg-[var(--ychat-surface)] p-3 lg:flex">
           <div>
-            <button type="button" onClick={() => navigateView("chats")} className="mb-4 flex w-full items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-2.5">
+            <button type="button" onClick={() => navigateView("chats")} className="mb-4 flex w-full items-center justify-center rounded-2xl border ychat-brand-tile p-2.5">
               <Image src="/icon-192.png" alt="Ychat" width={44} height={44} className="rounded-xl" />
             </button>
             <nav className="space-y-1.5">
               {visibleNavItems.map(({ id, label, icon: Icon }) => (
-                <button key={id} type="button" onClick={() => navigateView(id)} className={`flex w-full flex-col items-center rounded-2xl px-2 py-2.5 text-[10px] transition ${view === id ? "bg-cyan-500/15 text-cyan-200 shadow-[inset_0_0_0_1px_rgba(34,211,238,.18)]" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}>
+                <button key={id} type="button" onClick={() => navigateView(id)} className={`flex w-full flex-col items-center rounded-2xl px-2 py-2.5 text-[10px] transition ${view === id ? "ychat-nav-selected" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}>
                   <Icon className="mb-1 h-5 w-5" />{label}
                 </button>
               ))}
             </nav>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-2 text-center text-[10px] text-slate-500"><ShieldCheck className="mx-auto mb-1 h-4 w-4 text-cyan-300" />Secure</div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-2 text-center text-[10px] text-slate-500"><ShieldCheck className="mx-auto mb-1 h-4 w-4 ychat-neutral-icon" />Secure</div>
         </aside>
 
         <main className="ychat-main relative flex min-w-0 flex-1 flex-col bg-[var(--ychat-bg)]">
@@ -2187,7 +2187,7 @@ export function WorkspaceShell() {
           )}
 
           <nav className="grid h-[calc(64px+env(safe-area-inset-bottom))] grid-cols-6 shrink-0 border-t border-white/10 bg-[var(--ychat-surface)] pb-[env(safe-area-inset-bottom)] lg:hidden">
-            {mobileNavItems.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => navigateView(id)} className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] leading-tight ${view === id ? "text-cyan-300" : "text-slate-500"}`}><Icon className="h-5 w-5" /><span className="max-w-full truncate">{label}</span></button>)}
+            {mobileNavItems.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => navigateView(id)} className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] leading-tight ${view === id ? "ychat-nav-selected" : "ychat-nav-idle"}`}><Icon className="h-5 w-5" /><span className="max-w-full truncate">{label}</span></button>)}
           </nav>
         </main>
       </div>

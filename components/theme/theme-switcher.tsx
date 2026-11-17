@@ -6,7 +6,7 @@ import { useYchatTheme, type YchatTheme } from "@/components/theme/ychat-theme-p
 const options: Array<{ value: YchatTheme; label: string; description: string; icon: typeof Monitor }> = [
   { value: "system", label: "System", description: "Follow iPhone / iPad appearance", icon: Monitor },
   { value: "light", label: "Light", description: "Bright premium interface", icon: Sun },
-  { value: "dark", label: "Dark", description: "Deep navy interface", icon: Moon },
+  { value: "dark", label: "Dark", description: "Charcoal dark interface", icon: Moon },
 ];
 
 export function ThemeSwitcher() {

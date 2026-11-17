@@ -183,15 +183,15 @@ html[data-theme="light"] .ychat-chat-wallpaper {
 }
 
 html[data-theme="light"] .ychat-theme-option {
-  border-color: rgba(15, 23, 42, .09);
-  background: #f4f7fa;
-  color: #475569;
+  border-color: var(--mono-border);
+  background: var(--mono-surface);
+  color: var(--mono-text);
 }
 
 html[data-theme="light"] .ychat-theme-option:hover {
-  border-color: rgba(8, 155, 179, .30);
-  background: #ffffff;
-  color: #0f172a;
+  border-color: var(--mono-border);
+  background: var(--mono-hover);
+  color: var(--mono-text);
 }
 
 .ychat-theme-option {
@@ -216,17 +216,9 @@ html[data-theme="light"] .ychat-theme-option:hover {
   color: #e2e8f0;
 }
 
-.ychat-theme-option-active {
-  border-color: rgba(8,155,179,.45) !important;
-  background: var(--ychat-accent-soft) !important;
-  color: var(--ychat-accent-strong) !important;
-  box-shadow: 0 0 0 1px rgba(8,155,179,.08), 0 8px 24px rgba(8,155,179,.08);
-}
 
-html[data-theme="dark"] .ychat-theme-option-active {
-  color: #67e8f9 !important;
-  border-color: rgba(34,211,238,.45) !important;
-}
+
+
 
 .ychat-app-shell,
 .ychat-app-shell * {
@@ -1087,91 +1079,59 @@ html[data-theme] .ychat-app-shell button[class~="bg-rose-600"] * {
   filter: none !important;
 }
 
+/* Ychat component-level monochrome styling */
 
-
-/* YCHAT FINAL ACTIVE COLOR FIX V4 */
-
-/* Remove remaining colored sidebar surfaces */
-
-html[data-theme="dark"] .ychat-sidebar
-[class*="bg-[linear-gradient"],
-html[data-theme="dark"] .ychat-sidebar
-[class*="bg-[radial-gradient"] {
-  background: #383838 !important;
+html[data-theme] .ychat-brand-tile {
+  background: var(--mono-hover) !important;
   background-image: none !important;
-  color: #ffffff !important;
+  border-color: var(--mono-border) !important;
   box-shadow: none !important;
 }
 
-html[data-theme="light"] .ychat-sidebar
-[class*="bg-[linear-gradient"],
-html[data-theme="light"] .ychat-sidebar
-[class*="bg-[radial-gradient"] {
-  background: #e4e4e4 !important;
+html[data-theme] .ychat-nav-selected,
+html[data-theme] .ychat-theme-option[aria-pressed="true"] {
+  background: var(--mono-button) !important;
   background-image: none !important;
-  color: #202020 !important;
+  color: var(--mono-button-text) !important;
+  border-color: var(--mono-button) !important;
   box-shadow: none !important;
 }
 
-/* Selected sidebar menus */
-
-html[data-theme="dark"] .ychat-sidebar
-button[class*="gradient"],
-html[data-theme="dark"] .ychat-sidebar
-button[class*="text-slate-950"] {
-  background: #ffffff !important;
-  background-image: none !important;
-  color: #202020 !important;
-  border-color: #ffffff !important;
+html[data-theme] .ychat-nav-selected *,
+html[data-theme] .ychat-theme-option[aria-pressed="true"] * {
+  color: var(--mono-button-text) !important;
 }
 
-html[data-theme="light"] .ychat-sidebar
-button[class*="gradient"],
-html[data-theme="light"] .ychat-sidebar
-button[class*="text-slate-950"] {
-  background: #303030 !important;
-  background-image: none !important;
-  color: #ffffff !important;
-  border-color: #303030 !important;
-}
-
-/* Selected menu icons */
-
-html[data-theme] .ychat-sidebar button svg,
-html[data-theme] .ychat-sidebar button span {
-  color: inherit !important;
-}
-
-/* Appearance selector */
-
-html[data-theme="dark"] .ychat-app-shell
-button[class*="border-cyan"] {
-  background: #ffffff !important;
-  background-image: none !important;
-  border-color: #ffffff !important;
-  color: #202020 !important;
+html[data-theme] .ychat-theme-option[aria-pressed="false"],
+html[data-theme] .ychat-nav-idle {
+  background: var(--mono-hover) !important;
+  color: var(--mono-text) !important;
+  border-color: var(--mono-border) !important;
   box-shadow: none !important;
 }
 
-html[data-theme="light"] .ychat-app-shell
-button[class*="border-cyan"] {
-  background: #303030 !important;
-  background-image: none !important;
-  border-color: #303030 !important;
-  color: #ffffff !important;
-  box-shadow: none !important;
+html[data-theme] .ychat-theme-option[aria-pressed="false"] * {
+  color: var(--mono-text) !important;
 }
 
-html[data-theme] .ychat-app-shell
-button[class*="border-cyan"] svg,
-html[data-theme] .ychat-app-shell
-button[class*="border-cyan"] span {
-  color: inherit !important;
+html[data-theme] .ychat-neutral-icon {
+  color: var(--mono-text) !important;
 }
 
-/* Neutralize remaining colored gradients inside sidebar */
-
-html[data-theme] .ychat-sidebar {
-  background-image: none !important;
+html[data-theme="dark"] {
+  --ychat-accent-strong: #ffffff;
+  --ychat-accent-soft: #383838;
+  --ychat-surface-2: #303030;
+  --ychat-surface-3: #383838;
+  --ychat-text-2: #d4d4d4;
+  --ychat-text-3: #b5b5b5;
 }
 
+html[data-theme="light"] {
+  --ychat-accent-strong: #303030;
+  --ychat-accent-soft: #e4e4e4;
+  --ychat-surface-2: #ededed;
+  --ychat-surface-3: #e4e4e4;
+  --ychat-text-2: #404040;
+  --ychat-text-3: #525252;
+}
