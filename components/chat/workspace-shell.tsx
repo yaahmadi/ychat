@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { Capacitor } from "@capacitor/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -1349,6 +1350,89 @@ export function WorkspaceShell() {
     }
   }
 
+
+  async function handleNativeAvatar() {
+    if (profileSaving) return;
+
+    if (
+      Capacitor.getPlatform() !== "ios" ||
+      !Capacitor.isPluginAvailable("Camera")
+    ) {
+      avatarInputRef.current?.click();
+      return;
+    }
+
+    setProfileSaving(true);
+    setError(null);
+
+    try {
+      const {
+        Camera,
+        CameraSource,
+        CameraResultType
+      } = await import("@capacitor/camera");
+
+      const photo = await Camera.getPhoto({
+        quality: 85,
+        width: 1024,
+        height: 1024,
+        allowEditing: false,
+        correctOrientation: true,
+        saveToGallery: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Prompt,
+        presentationStyle: "fullscreen",
+        promptLabelHeader: "Profile photo",
+        promptLabelPicture: "Take photo",
+        promptLabelPhoto: "Choose from library",
+        promptLabelCancel: "Cancel"
+      });
+
+      if (!photo.dataUrl) {
+        throw new Error("No photo was returned.");
+      }
+
+      const response = await fetch(photo.dataUrl);
+      const blob = await response.blob();
+
+      const file = new File(
+        [blob],
+        `avatar-${Date.now()}.${photo.format || "jpeg"}`,
+        { type: blob.type || "image/jpeg" }
+      );
+
+      const updated = await uploadProfileAvatar(file);
+
+      setProfiles((current) =>
+        current.map((profile) =>
+          profile.id === updated.id
+            ? updated as ProfileRow
+            : profile
+        )
+      );
+
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" &&
+            err !== null &&
+            "message" in err
+            ? String(err.message)
+            : String(err);
+
+      if (!/cancel/i.test(message)) {
+        setError(
+          /permission|denied/i.test(message)
+            ? "Please allow camera access in your device settings."
+            : message || "Unable to update profile photo."
+        );
+      }
+    } finally {
+      setProfileSaving(false);
+    }
+  }
+
   async function handleAvatarChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -1961,7 +2045,7 @@ export function WorkspaceShell() {
               <div className="mx-auto max-w-3xl space-y-4">
                 <div className="rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-5">
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-                    <button type="button" onClick={() => avatarInputRef.current?.click()} className="group relative w-fit rounded-full" title="Change profile photo">
+                    <button type="button" onClick={() => void handleNativeAvatar()} className="group relative w-fit rounded-full" title="Change profile photo">
                       <Avatar profile={currentProfile} size="lg" />
                       <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 text-[10px] font-semibold text-white opacity-0 transition group-hover:bg-black/55 group-hover:opacity-100">PHOTO</span>
                     </button>
@@ -1971,7 +2055,7 @@ export function WorkspaceShell() {
                       <label className="text-xs text-slate-400"><span className="mb-1.5 block">Username</span><input value={profileUsername} onChange={(event) => setProfileUsername(event.target.value)} className="w-full rounded-xl border border-white/10 bg-[var(--ychat-input)] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-cyan-500/40" placeholder="username" /></label>
                     </div>
                     <div className="flex flex-col gap-2 sm:w-auto">
-                      <button type="button" onClick={() => avatarInputRef.current?.click()} disabled={profileSaving} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-200 disabled:opacity-40">Change photo</button>
+                      <button type="button" onClick={() => void handleNativeAvatar()} disabled={profileSaving} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-200 disabled:opacity-40">Change photo</button>
                       <button type="button" onClick={() => void saveProfile()} disabled={profileSaving || !profileName.trim()} className="rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950 disabled:opacity-40">{profileSaving ? "Saving…" : "Save profile"}</button>
                     </div>
                   </div>
@@ -2010,6 +2094,20 @@ export function WorkspaceShell() {
                 <SettingRow icon={<Bell className="h-5 w-5" />} title="Message and call notifications" text={`Browser permission: ${notificationPermission}`} action={<button type="button" onClick={() => void enableNotifications()} className="rounded-xl border border-white/10 px-4 py-2 text-sm">Enable</button>} />
                 <SettingRow icon={<Video className="h-5 w-5" />} title="Calling" text="Voice/video calls use encrypted browser WebRTC media with Supabase realtime signaling. HTTPS is required outside localhost." />
                 <SettingRow icon={<HardDriveUpload className="h-5 w-5" />} title="Storage and media" text="Clear local call history, archived-chat state and cached PWA media on this device." action={<button type="button" onClick={() => void clearLocalStorageAndMedia()} className="rounded-xl border border-white/10 px-4 py-2 text-sm">Clear</button>} />
+                <SettingRow
+                  icon={<Trash2 className="h-5 w-5 text-rose-500" />}
+                  title="Delete account"
+                  text="Permanently delete your Ychat account and associated personal data."
+                  action={
+                    <button
+                      type="button"
+                      disabled
+                      className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                    >
+                      Delete my account
+                    </button>
+                  }
+                />
                 <SettingRow icon={<LogOut className="h-5 w-5" />} title="Sign out" text="End this browser session." action={<button type="button" onClick={() => void handleLogout()} className="rounded-xl bg-rose-500/15 px-4 py-2 text-sm font-medium text-rose-300">Logout</button>} />
                 <div className="rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-5 text-sm text-slate-400">
                   <div className="flex flex-wrap gap-4">
