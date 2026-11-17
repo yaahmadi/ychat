@@ -1087,3 +1087,91 @@ html[data-theme] .ychat-app-shell button[class~="bg-rose-600"] * {
   filter: none !important;
 }
 
+
+
+/* YCHAT FINAL ACTIVE COLOR FIX V4 */
+
+/* Remove remaining colored sidebar surfaces */
+
+html[data-theme="dark"] .ychat-sidebar
+[class*="bg-[linear-gradient"],
+html[data-theme="dark"] .ychat-sidebar
+[class*="bg-[radial-gradient"] {
+  background: #383838 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="light"] .ychat-sidebar
+[class*="bg-[linear-gradient"],
+html[data-theme="light"] .ychat-sidebar
+[class*="bg-[radial-gradient"] {
+  background: #e4e4e4 !important;
+  background-image: none !important;
+  color: #202020 !important;
+  box-shadow: none !important;
+}
+
+/* Selected sidebar menus */
+
+html[data-theme="dark"] .ychat-sidebar
+button[class*="gradient"],
+html[data-theme="dark"] .ychat-sidebar
+button[class*="text-slate-950"] {
+  background: #ffffff !important;
+  background-image: none !important;
+  color: #202020 !important;
+  border-color: #ffffff !important;
+}
+
+html[data-theme="light"] .ychat-sidebar
+button[class*="gradient"],
+html[data-theme="light"] .ychat-sidebar
+button[class*="text-slate-950"] {
+  background: #303030 !important;
+  background-image: none !important;
+  color: #ffffff !important;
+  border-color: #303030 !important;
+}
+
+/* Selected menu icons */
+
+html[data-theme] .ychat-sidebar button svg,
+html[data-theme] .ychat-sidebar button span {
+  color: inherit !important;
+}
+
+/* Appearance selector */
+
+html[data-theme="dark"] .ychat-app-shell
+button[class*="border-cyan"] {
+  background: #ffffff !important;
+  background-image: none !important;
+  border-color: #ffffff !important;
+  color: #202020 !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="light"] .ychat-app-shell
+button[class*="border-cyan"] {
+  background: #303030 !important;
+  background-image: none !important;
+  border-color: #303030 !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] .ychat-app-shell
+button[class*="border-cyan"] svg,
+html[data-theme] .ychat-app-shell
+button[class*="border-cyan"] span {
+  color: inherit !important;
+}
+
+/* Neutralize remaining colored gradients inside sidebar */
+
+html[data-theme] .ychat-sidebar {
+  background-image: none !important;
+}
+
