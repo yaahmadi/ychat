@@ -1449,6 +1449,71 @@ export function WorkspaceShell() {
     }
   }
 
+
+  async function handleDeleteAccount() {
+    const confirmation = window.prompt(
+      "Permanently delete your Ychat account and associated personal data? This action cannot be undone. Type DELETE to confirm."
+    );
+
+    if (confirmation !== "DELETE") {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/account/delete", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          confirmation: "DELETE",
+          execute: true,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        window.alert(
+          result.error || "Unable to delete your account."
+        );
+        return;
+      }
+
+      if (result.dryRun === true) {
+        window.alert(
+          "Deletion readiness check passed. Your account has not been deleted."
+        );
+        return;
+      }
+
+      if (result.deleted !== true) {
+        window.alert("Account deletion was not confirmed.");
+        return;
+      }
+
+      const supabase = createClient();
+
+      try {
+        await supabase.auth.signOut({ scope: "local" });
+      } catch {
+        // Account deletion has already completed.
+      }
+
+      window.alert(
+        "Your Ychat account has been permanently deleted."
+      );
+
+      window.location.replace("/auth/login");
+
+    } catch {
+      window.alert(
+        "Unable to complete the account request. Please try again."
+      );
+    }
+  }
+
   async function handleLogout() {
     const supabase = createClient();
     const { error: logoutError } = await supabase.auth.signOut();
@@ -2101,8 +2166,8 @@ export function WorkspaceShell() {
                   action={
                     <button
                       type="button"
-                      disabled
-                      className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                      onClick={() => void handleDeleteAccount()}
+                      className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700"
                     >
                       Delete my account
                     </button>

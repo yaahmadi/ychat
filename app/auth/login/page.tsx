@@ -106,10 +106,15 @@ export default function LoginPage() {
 
         try {
           // Exchange in the original WebView, which owns the PKCE verifier.
-          const { error } = await createClient().auth.exchangeCodeForSession(code);
-          if (error) throw error;
-          router.replace("/chat");
-          router.refresh();
+          const callbackUrl = new URL(
+            "/auth/callback",
+            window.location.origin
+          );
+
+          callbackUrl.searchParams.set("code", code);
+          callbackUrl.searchParams.set("next", "/chat");
+
+          window.location.replace(callbackUrl.toString());
         } catch (cause) {
           setError(friendlyAuthError(cause));
         } finally {
