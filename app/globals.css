@@ -554,3 +554,108 @@ html[data-theme="light"] .ychat-app-shell .bg-black\/30 {
   color: #fff !important;
   opacity: 0.78;
 }
+
+
+/* YCHAT BUILD 4 CHARCOAL THEME */
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --ychat-bg: #18181b;
+  --ychat-surface: #27272a;
+  --ychat-panel: #27272a;
+  --ychat-input: #303034;
+  --ychat-border: #45454b;
+  --ychat-text: #ffffff;
+  --ychat-muted: #d4d4d8;
+}
+
+html[data-theme="dark"] body {
+  background: #18181b;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .ychat-app-shell,
+html[data-theme="dark"] .ychat-main,
+html[data-theme="dark"] .ychat-sidebar {
+  color: #ffffff;
+}
+
+html[data-theme="dark"] [class*="bg-[#06101d]"],
+html[data-theme="dark"] [class*="bg-[#07111f]"] {
+  background-color: #18181b !important;
+}
+
+html[data-theme="dark"] [class*="bg-[#0a1b2d]"],
+html[data-theme="dark"] [class*="bg-[#0b1c2f]"] {
+  background-color: #27272a !important;
+}
+
+html[data-theme="dark"] [class*="bg-[#102438]"] {
+  background-color: #303034 !important;
+}
+
+html[data-theme="dark"] .ychat-app-shell .text-slate-100,
+html[data-theme="dark"] .ychat-app-shell .text-slate-200,
+html[data-theme="dark"] .ychat-app-shell .text-slate-300 {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .ychat-app-shell .text-slate-400,
+html[data-theme="dark"] .ychat-app-shell .text-slate-500,
+html[data-theme="dark"] .ychat-app-shell .text-slate-600 {
+  color: #d4d4d8 !important;
+}
+
+html[data-theme="dark"] .ychat-app-shell input,
+html[data-theme="dark"] .ychat-app-shell textarea {
+  background-color: #303034 !important;
+  color: #ffffff !important;
+  border-color: #45454b !important;
+}
+
+html[data-theme="dark"] .ychat-app-shell input::placeholder,
+html[data-theme="dark"] .ychat-app-shell textarea::placeholder {
+  color: #a1a1aa !important;
+}
+
+/* Official Apple-provided button artwork */
+
+.ychat-official-apple-button {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.ychat-official-apple-button img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.ychat-official-apple-button .ychat-apple-dark {
+  display: none;
+}
+
+html[data-theme="dark"] .ychat-official-apple-button .ychat-apple-light {
+  display: none;
+}
+
+html[data-theme="dark"] .ychat-official-apple-button .ychat-apple-dark {
+  display: block;
+}
+
+.ychat-official-apple-button:disabled {
+  cursor: not-allowed;
+}
+
+.ychat-official-apple-button:focus-visible {
+  outline: 2px solid #0891b2;
+  outline-offset: 4px;
+}

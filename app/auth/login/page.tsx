@@ -263,16 +263,26 @@ export default function LoginPage() {
           type="button"
           onClick={handleAppleLogin}
           disabled={appleLoading || googleLoading || loading}
-          className="ychat-apple-login mt-3 flex w-full items-center justify-center gap-2.5 rounded-xl border border-slate-400/70 bg-black px-4 py-2.5 text-sm font-semibold shadow-lg shadow-black/20 transition hover:bg-neutral-900 disabled:cursor-not-allowed disabled:bg-neutral-700 disabled:text-slate-200 disabled:opacity-80"
+          aria-label="Continue with Apple"
+          aria-busy={appleLoading}
+          className="ychat-official-apple-button mt-3"
         >
-          <span aria-hidden="true" className="text-xl leading-none">
-            
-          </span>
-          {appleLoading
-            ? "Connecting..."
-            : mode === "signin"
-              ? "Continue with Apple"
-              : "Sign up with Apple"}
+          <picture>
+            <img
+              src="/branding/apple-signin-light.png"
+              alt=""
+              width={320}
+              height={44}
+              className="ychat-apple-light"
+            />
+          </picture>
+          <img
+            src="/branding/apple-signin-dark.png"
+            alt=""
+            width={320}
+            height={44}
+            className="ychat-apple-dark"
+          />
         </button>
 
         <button
