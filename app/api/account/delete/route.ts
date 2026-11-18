@@ -76,7 +76,6 @@ export async function POST(request: Request) {
 
     if (
       process.env.ACCOUNT_DELETION_ENABLED !== "true" ||
-      process.env.ACCOUNT_DELETION_TEST_USER_ID !== user.id ||
       body?.execute !== true
     ) {
       return NextResponse.json({
@@ -93,18 +92,11 @@ export async function POST(request: Request) {
       ) ||
       user.app_metadata?.provider === "apple";
 
+    let appleManualRevocation = false;
+
     if (usesApple) {
       const revoked = await revokeStoredAppleToken(user.id);
-
-      if (!revoked) {
-        return NextResponse.json(
-          {
-            error: "Apple authorization requires verification.",
-            code: "APPLE_AUTHORIZATION_REQUIRED"
-          },
-          { status: 409 }
-        );
-      }
+      appleManualRevocation = !revoked;
     }
 
     const {
@@ -153,11 +145,16 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       deleted: true,
+      appleManualRevocation,
       filesRemoved: storageResult.removed,
       message: "Your Ychat account has been permanently deleted."
     });
 
-  } catch {
+  } catch (error) {
+    console.error(
+      "[Account deletion]",
+      error instanceof Error ? error.message : "Unknown failure"
+    );
     return NextResponse.json(
       { error: "Unable to process account request." },
       { status: 500 }

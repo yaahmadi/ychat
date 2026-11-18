@@ -304,6 +304,14 @@ export function WorkspaceShell() {
   const [error, setError] = useState<string | null>(null);
   const [peopleOpen, setPeopleOpen] = useState(false);
   const [manualContactOpen, setManualContactOpen] = useState(false);
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteReasons, setDeleteReasons] = useState<string[]>([]);
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const deletionInProgress = useRef(false);
+
   const [manualFirstName, setManualFirstName] = useState("");
   const [manualLastName, setManualLastName] = useState("");
   const [manualPhone, setManualPhone] = useState("");
@@ -1450,67 +1458,64 @@ export function WorkspaceShell() {
   }
 
 
-  async function handleDeleteAccount() {
-    const confirmation = window.prompt(
-      "Permanently delete your Ychat account and associated personal data? This action cannot be undone. Type DELETE to confirm."
-    );
+  function handleDeleteAccount() {
+    setDeleteConfirmed(false);
+    setDeleteReasons([]);
+    setDeleteError("");
+    setDeleteOpen(true);
+  }
 
-    if (confirmation !== "DELETE") {
-      return;
-    }
+  async function confirmAccountDeletion() {
+    if (!deleteConfirmed || deletionInProgress.current) return;
+
+    deletionInProgress.current = true;
+    setDeletingAccount(true);
+    setDeleteError("");
 
     try {
       const response = await fetch("/api/account/delete", {
         method: "POST",
         credentials: "same-origin",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           confirmation: "DELETE",
-          execute: true,
-        }),
+          execute: true
+        })
       });
 
       const result = await response.json();
 
-      if (!response.ok) {
-        window.alert(
-          result.error || "Unable to delete your account."
+      if (!response.ok || result.deleted !== true) {
+        setDeleteError(
+          result.error ||
+          "Account deletion is currently unavailable."
         );
         return;
       }
-
-      if (result.dryRun === true) {
-        window.alert(
-          "Deletion readiness check passed. Your account has not been deleted."
-        );
-        return;
-      }
-
-      if (result.deleted !== true) {
-        window.alert("Account deletion was not confirmed.");
-        return;
-      }
-
-      const supabase = createClient();
 
       try {
-        await supabase.auth.signOut({ scope: "local" });
-      } catch {
-        // Account deletion has already completed.
-      }
+        await createClient().auth.signOut({
+          scope: "local"
+        });
+      } catch {}
 
       window.alert(
-        "Your Ychat account has been permanently deleted."
+        result.appleManualRevocation
+          ? "Your Ychat account has been deleted. Remove Ychat from Sign in with Apple in your Apple Account settings."
+          : "Your Ychat account has been permanently deleted."
       );
 
       window.location.replace("/auth/login");
 
     } catch {
-      window.alert(
-        "Unable to complete the account request. Please try again."
+      setDeleteError(
+        "Unable to complete your request. Please try again."
       );
+    } finally {
+      deletionInProgress.current = false;
+      setDeletingAccount(false);
     }
   }
 
@@ -1689,6 +1694,131 @@ export function WorkspaceShell() {
               <span className="line-clamp-2">{error}</span><button type="button" onClick={() => setError(null)} className="shrink-0 pt-0.5"><X className="h-4 w-4" /></button>
             </div>
           )}
+          {deleteOpen && (
+            <Modal onClose={() => {
+              if (!deletingAccount) setDeleteOpen(false);
+            }}>
+              <div className="max-h-[75dvh] overflow-y-auto p-4">
+
+                <div className="mb-4 flex justify-center">
+                  <div className="rounded-full bg-rose-500/10 p-4">
+                    <Trash2 className="h-8 w-8 text-rose-500" />
+                  </div>
+                </div>
+
+                <h2 className="text-center text-xl font-bold">
+                  Delete your account?
+                </h2>
+
+                <p className="mt-3 text-center text-sm">
+                  Are you sure you want to permanently
+                  delete your Ychat account?
+                </p>
+
+                <p className="mt-2 text-center text-xs opacity-70">
+                  Your account and associated personal data
+                  will be removed. This action cannot be undone.
+                </p>
+
+                <div className="my-5 border-t
+                  border-[var(--ychat-border)]" />
+
+                <h3 className="text-sm font-semibold">
+                  Why are you leaving Ychat?
+                </h3>
+
+                <p className="mb-3 mt-1 text-xs opacity-70">
+                  Optional - select any applicable reasons.
+                </p>
+
+                <div className="space-y-2">
+                  {[
+                    "I no longer use Ychat",
+                    "I found another messaging app",
+                    "Privacy or security concerns",
+                    "Technical problems",
+                    "Missing features",
+                    "Too many notifications",
+                    "Other"
+                  ].map(reason => (
+                    <label key={reason}
+                      className="flex cursor-pointer items-center
+                      gap-3 rounded-xl border
+                      border-[var(--ychat-border)]
+                      bg-[var(--ychat-surface)] p-3 text-sm">
+
+                      <input
+                        type="checkbox"
+                        checked={deleteReasons.includes(reason)}
+                        disabled={deletingAccount}
+                        className="h-4 w-4 accent-neutral-600"
+                        onChange={event => {
+                          setDeleteReasons(current =>
+                            event.target.checked
+                              ? [...current, reason]
+                              : current.filter(item => item !== reason)
+                          );
+                        }}
+                      />
+
+                      {reason}
+                    </label>
+                  ))}
+                </div>
+
+                <label className="my-4 flex items-center gap-3
+                  rounded-xl border
+                  border-[var(--ychat-border)] p-3 text-sm">
+
+                  <input
+                    type="checkbox"
+                    checked={deleteConfirmed}
+                    disabled={deletingAccount}
+                    className="h-4 w-4 accent-rose-600"
+                    onChange={event =>
+                      setDeleteConfirmed(event.target.checked)}
+                  />
+
+                  I understand that deleting my account
+                  is permanent.
+                </label>
+
+                {deleteError && (
+                  <p role="alert"
+                    className="mb-3 rounded-xl bg-rose-500/10
+                    p-3 text-sm text-rose-500">
+                    {deleteError}
+                  </p>
+                )}
+
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    disabled={deletingAccount}
+                    onClick={() => setDeleteOpen(false)}
+                    className="w-full rounded-xl border
+                    border-[var(--ychat-border)] py-3
+                    text-sm font-semibold">
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!deleteConfirmed || deletingAccount}
+                    onClick={() => void confirmAccountDeletion()}
+                    className="w-full rounded-xl bg-rose-600
+                    py-3 text-sm font-semibold text-white
+                    disabled:opacity-40">
+
+                    {deletingAccount
+                      ? "Deleting account..."
+                      : "Permanently delete my account"}
+                  </button>
+                </div>
+              </div>
+            </Modal>
+          )}
+
           {manualContactOpen && (
             <Modal onClose={() => setManualContactOpen(false)}>
               <div className="p-5">
