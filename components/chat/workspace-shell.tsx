@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { Capacitor } from "@capacitor/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -303,6 +304,14 @@ export function WorkspaceShell() {
   const [error, setError] = useState<string | null>(null);
   const [peopleOpen, setPeopleOpen] = useState(false);
   const [manualContactOpen, setManualContactOpen] = useState(false);
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteReasons, setDeleteReasons] = useState<string[]>([]);
+  const [deleteConfirmed, setDeleteConfirmed] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+  const deletionInProgress = useRef(false);
+
   const [manualFirstName, setManualFirstName] = useState("");
   const [manualLastName, setManualLastName] = useState("");
   const [manualPhone, setManualPhone] = useState("");
@@ -1349,6 +1358,89 @@ export function WorkspaceShell() {
     }
   }
 
+
+  async function handleNativeAvatar() {
+    if (profileSaving) return;
+
+    if (
+      Capacitor.getPlatform() !== "ios" ||
+      !Capacitor.isPluginAvailable("Camera")
+    ) {
+      avatarInputRef.current?.click();
+      return;
+    }
+
+    setProfileSaving(true);
+    setError(null);
+
+    try {
+      const {
+        Camera,
+        CameraSource,
+        CameraResultType
+      } = await import("@capacitor/camera");
+
+      const photo = await Camera.getPhoto({
+        quality: 85,
+        width: 1024,
+        height: 1024,
+        allowEditing: false,
+        correctOrientation: true,
+        saveToGallery: false,
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Prompt,
+        presentationStyle: "fullscreen",
+        promptLabelHeader: "Profile photo",
+        promptLabelPicture: "Take photo",
+        promptLabelPhoto: "Choose from library",
+        promptLabelCancel: "Cancel"
+      });
+
+      if (!photo.dataUrl) {
+        throw new Error("No photo was returned.");
+      }
+
+      const response = await fetch(photo.dataUrl);
+      const blob = await response.blob();
+
+      const file = new File(
+        [blob],
+        `avatar-${Date.now()}.${photo.format || "jpeg"}`,
+        { type: blob.type || "image/jpeg" }
+      );
+
+      const updated = await uploadProfileAvatar(file);
+
+      setProfiles((current) =>
+        current.map((profile) =>
+          profile.id === updated.id
+            ? updated as ProfileRow
+            : profile
+        )
+      );
+
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "object" &&
+            err !== null &&
+            "message" in err
+            ? String(err.message)
+            : String(err);
+
+      if (!/cancel/i.test(message)) {
+        setError(
+          /permission|denied/i.test(message)
+            ? "Please allow camera access in your device settings."
+            : message || "Unable to update profile photo."
+        );
+      }
+    } finally {
+      setProfileSaving(false);
+    }
+  }
+
   async function handleAvatarChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -1362,6 +1454,68 @@ export function WorkspaceShell() {
       setError(err instanceof Error ? err.message : "Unable to update profile photo.");
     } finally {
       setProfileSaving(false);
+    }
+  }
+
+
+  function handleDeleteAccount() {
+    setDeleteConfirmed(false);
+    setDeleteReasons([]);
+    setDeleteError("");
+    setDeleteOpen(true);
+  }
+
+  async function confirmAccountDeletion() {
+    if (!deleteConfirmed || deletionInProgress.current) return;
+
+    deletionInProgress.current = true;
+    setDeletingAccount(true);
+    setDeleteError("");
+
+    try {
+      const response = await fetch("/api/account/delete", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          confirmation: "DELETE",
+          execute: true
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || result.deleted !== true) {
+        setDeleteError(
+          result.error ||
+          "Account deletion is currently unavailable."
+        );
+        return;
+      }
+
+      try {
+        await createClient().auth.signOut({
+          scope: "local"
+        });
+      } catch {}
+
+      window.alert(
+        result.appleManualRevocation
+          ? "Your Ychat account has been deleted. Remove Ychat from Sign in with Apple in your Apple Account settings."
+          : "Your Ychat account has been permanently deleted."
+      );
+
+      window.location.replace("/auth/login");
+
+    } catch {
+      setDeleteError(
+        "Unable to complete your request. Please try again."
+      );
+    } finally {
+      deletionInProgress.current = false;
+      setDeletingAccount(false);
     }
   }
 
@@ -1454,9 +1608,9 @@ export function WorkspaceShell() {
               <>
                 <div className="rounded-2xl border border-cyan-200/60 bg-cyan-50 p-4 dark:border-cyan-400/20 dark:bg-cyan-500/5">
                   <p className="font-semibold text-cyan-800 dark:text-cyan-200">Ychat plan</p>
-                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Your account is ready for plan and billing management. Billing is not connected to this self-hosted production server yet.</p>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">YChat is currently free. There are no active paid plans or subscription purchases in this version.</p>
                 </div>
-                <a href="mailto:support@yamaahmadi.fr?subject=Ychat%20subscription" className="block w-full rounded-xl bg-cyan-500 px-4 py-2.5 text-center text-sm font-semibold text-slate-950">Contact billing</a>
+                <p className="text-sm text-slate-500">No purchase is required to access YChat messaging features.</p>
               </>
             )}
             {settingsModal === "account" && (
@@ -1520,18 +1674,18 @@ export function WorkspaceShell() {
       <div className="mx-auto flex h-full max-w-[1800px]">
         <aside className="ychat-sidebar hidden w-[88px] shrink-0 flex-col justify-between border-r border-white/10 bg-[var(--ychat-surface)] p-3 lg:flex">
           <div>
-            <button type="button" onClick={() => navigateView("chats")} className="mb-4 flex w-full items-center justify-center rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-2.5">
+            <button type="button" onClick={() => navigateView("chats")} className="mb-4 flex w-full items-center justify-center rounded-2xl border ychat-brand-tile p-2.5">
               <Image src="/icon-192.png" alt="Ychat" width={44} height={44} className="rounded-xl" />
             </button>
             <nav className="space-y-1.5">
               {visibleNavItems.map(({ id, label, icon: Icon }) => (
-                <button key={id} type="button" onClick={() => navigateView(id)} className={`flex w-full flex-col items-center rounded-2xl px-2 py-2.5 text-[10px] transition ${view === id ? "bg-cyan-500/15 text-cyan-200 shadow-[inset_0_0_0_1px_rgba(34,211,238,.18)]" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}>
+                <button key={id} type="button" onClick={() => navigateView(id)} className={`flex w-full flex-col items-center rounded-2xl px-2 py-2.5 text-[10px] transition ${view === id ? "ychat-nav-selected" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}>
                   <Icon className="mb-1 h-5 w-5" />{label}
                 </button>
               ))}
             </nav>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-2 text-center text-[10px] text-slate-500"><ShieldCheck className="mx-auto mb-1 h-4 w-4 text-cyan-300" />Secure</div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-2 text-center text-[10px] text-slate-500"><ShieldCheck className="mx-auto mb-1 h-4 w-4 ychat-neutral-icon" />Secure</div>
         </aside>
 
         <main className="ychat-main relative flex min-w-0 flex-1 flex-col bg-[var(--ychat-bg)]">
@@ -1540,6 +1694,131 @@ export function WorkspaceShell() {
               <span className="line-clamp-2">{error}</span><button type="button" onClick={() => setError(null)} className="shrink-0 pt-0.5"><X className="h-4 w-4" /></button>
             </div>
           )}
+          {deleteOpen && (
+            <Modal onClose={() => {
+              if (!deletingAccount) setDeleteOpen(false);
+            }}>
+              <div className="max-h-[75dvh] overflow-y-auto p-4">
+
+                <div className="mb-4 flex justify-center">
+                  <div className="rounded-full bg-rose-500/10 p-4">
+                    <Trash2 className="h-8 w-8 text-rose-500" />
+                  </div>
+                </div>
+
+                <h2 className="text-center text-xl font-bold">
+                  Delete your account?
+                </h2>
+
+                <p className="mt-3 text-center text-sm">
+                  Are you sure you want to permanently
+                  delete your Ychat account?
+                </p>
+
+                <p className="mt-2 text-center text-xs opacity-70">
+                  Your account and associated personal data
+                  will be removed. This action cannot be undone.
+                </p>
+
+                <div className="my-5 border-t
+                  border-[var(--ychat-border)]" />
+
+                <h3 className="text-sm font-semibold">
+                  Why are you leaving Ychat?
+                </h3>
+
+                <p className="mb-3 mt-1 text-xs opacity-70">
+                  Optional - select any applicable reasons.
+                </p>
+
+                <div className="space-y-2">
+                  {[
+                    "I no longer use Ychat",
+                    "I found another messaging app",
+                    "Privacy or security concerns",
+                    "Technical problems",
+                    "Missing features",
+                    "Too many notifications",
+                    "Other"
+                  ].map(reason => (
+                    <label key={reason}
+                      className="flex cursor-pointer items-center
+                      gap-3 rounded-xl border
+                      border-[var(--ychat-border)]
+                      bg-[var(--ychat-surface)] p-3 text-sm">
+
+                      <input
+                        type="checkbox"
+                        checked={deleteReasons.includes(reason)}
+                        disabled={deletingAccount}
+                        className="h-4 w-4 accent-neutral-600"
+                        onChange={event => {
+                          setDeleteReasons(current =>
+                            event.target.checked
+                              ? [...current, reason]
+                              : current.filter(item => item !== reason)
+                          );
+                        }}
+                      />
+
+                      {reason}
+                    </label>
+                  ))}
+                </div>
+
+                <label className="my-4 flex items-center gap-3
+                  rounded-xl border
+                  border-[var(--ychat-border)] p-3 text-sm">
+
+                  <input
+                    type="checkbox"
+                    checked={deleteConfirmed}
+                    disabled={deletingAccount}
+                    className="h-4 w-4 accent-rose-600"
+                    onChange={event =>
+                      setDeleteConfirmed(event.target.checked)}
+                  />
+
+                  I understand that deleting my account
+                  is permanent.
+                </label>
+
+                {deleteError && (
+                  <p role="alert"
+                    className="mb-3 rounded-xl bg-rose-500/10
+                    p-3 text-sm text-rose-500">
+                    {deleteError}
+                  </p>
+                )}
+
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    disabled={deletingAccount}
+                    onClick={() => setDeleteOpen(false)}
+                    className="w-full rounded-xl border
+                    border-[var(--ychat-border)] py-3
+                    text-sm font-semibold">
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!deleteConfirmed || deletingAccount}
+                    onClick={() => void confirmAccountDeletion()}
+                    className="w-full rounded-xl bg-rose-600
+                    py-3 text-sm font-semibold text-white
+                    disabled:opacity-40">
+
+                    {deletingAccount
+                      ? "Deleting account..."
+                      : "Permanently delete my account"}
+                  </button>
+                </div>
+              </div>
+            </Modal>
+          )}
+
           {manualContactOpen && (
             <Modal onClose={() => setManualContactOpen(false)}>
               <div className="p-5">
@@ -1961,7 +2240,7 @@ export function WorkspaceShell() {
               <div className="mx-auto max-w-3xl space-y-4">
                 <div className="rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-5">
                   <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-                    <button type="button" onClick={() => avatarInputRef.current?.click()} className="group relative w-fit rounded-full" title="Change profile photo">
+                    <button type="button" onClick={() => void handleNativeAvatar()} className="group relative w-fit rounded-full" title="Change profile photo">
                       <Avatar profile={currentProfile} size="lg" />
                       <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 text-[10px] font-semibold text-white opacity-0 transition group-hover:bg-black/55 group-hover:opacity-100">PHOTO</span>
                     </button>
@@ -1971,7 +2250,7 @@ export function WorkspaceShell() {
                       <label className="text-xs text-slate-400"><span className="mb-1.5 block">Username</span><input value={profileUsername} onChange={(event) => setProfileUsername(event.target.value)} className="w-full rounded-xl border border-white/10 bg-[var(--ychat-input)] px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-cyan-500/40" placeholder="username" /></label>
                     </div>
                     <div className="flex flex-col gap-2 sm:w-auto">
-                      <button type="button" onClick={() => avatarInputRef.current?.click()} disabled={profileSaving} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-200 disabled:opacity-40">Change photo</button>
+                      <button type="button" onClick={() => void handleNativeAvatar()} disabled={profileSaving} className="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-slate-200 disabled:opacity-40">Change photo</button>
                       <button type="button" onClick={() => void saveProfile()} disabled={profileSaving || !profileName.trim()} className="rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950 disabled:opacity-40">{profileSaving ? "Saving…" : "Save profile"}</button>
                     </div>
                   </div>
@@ -2003,13 +2282,27 @@ export function WorkspaceShell() {
                   </div>
                 </div>
                 <SettingRow icon={<Users className="h-5 w-5" />} title="Linked devices" text="See the devices currently using your Ychat account and keep this session secure." action={<button type="button" onClick={() => setSettingsModal("linked-devices")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Manage</button>} />
-                <SettingRow icon={<Sparkles className="h-5 w-5" />} title="Subscription" text="Ychat plan, billing and premium features." action={<button type="button" onClick={() => setSettingsModal("subscription")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">View plan</button>} />
+                <SettingRow icon={<Sparkles className="h-5 w-5" />} title="Plan" text="YChat is free in this release; no subscription is required." action={<button type="button" onClick={() => setSettingsModal("subscription")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">View plan</button>} />
                 <SettingRow icon={<ShieldCheck className="h-5 w-5" />} title="Privacy" text="Control privacy, story visibility and communication permissions." action={<Link href="/privacy" className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Open</Link>} />
                 <SettingRow icon={<MessageCircle className="h-5 w-5" />} title="Account" text="Your Ychat ID, profile information and account security." action={<button type="button" onClick={() => setSettingsModal("account")} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Account center</button>} />
                 <SettingRow icon={<HardDriveUpload className="h-5 w-5" />} title="Storage" text="Review local cache and shared media storage." action={<button type="button" onClick={() => void clearLocalStorageAndMedia()} className="rounded-xl border border-slate-200 px-4 py-2 text-sm">Manage</button>} />
                 <SettingRow icon={<Bell className="h-5 w-5" />} title="Message and call notifications" text={`Browser permission: ${notificationPermission}`} action={<button type="button" onClick={() => void enableNotifications()} className="rounded-xl border border-white/10 px-4 py-2 text-sm">Enable</button>} />
                 <SettingRow icon={<Video className="h-5 w-5" />} title="Calling" text="Voice/video calls use encrypted browser WebRTC media with Supabase realtime signaling. HTTPS is required outside localhost." />
                 <SettingRow icon={<HardDriveUpload className="h-5 w-5" />} title="Storage and media" text="Clear local call history, archived-chat state and cached PWA media on this device." action={<button type="button" onClick={() => void clearLocalStorageAndMedia()} className="rounded-xl border border-white/10 px-4 py-2 text-sm">Clear</button>} />
+                <SettingRow
+                  icon={<Trash2 className="h-5 w-5 text-rose-500" />}
+                  title="Delete account"
+                  text="Permanently delete your Ychat account and associated personal data."
+                  action={
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteAccount()}
+                      className="rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-rose-700"
+                    >
+                      Delete my account
+                    </button>
+                  }
+                />
                 <SettingRow icon={<LogOut className="h-5 w-5" />} title="Sign out" text="End this browser session." action={<button type="button" onClick={() => void handleLogout()} className="rounded-xl bg-rose-500/15 px-4 py-2 text-sm font-medium text-rose-300">Logout</button>} />
                 <div className="rounded-2xl border border-white/10 bg-[var(--ychat-surface)] p-5 text-sm text-slate-400">
                   <div className="flex flex-wrap gap-4">
@@ -2024,7 +2317,7 @@ export function WorkspaceShell() {
           )}
 
           <nav className="grid h-[calc(64px+env(safe-area-inset-bottom))] grid-cols-6 shrink-0 border-t border-white/10 bg-[var(--ychat-surface)] pb-[env(safe-area-inset-bottom)] lg:hidden">
-            {mobileNavItems.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => navigateView(id)} className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] leading-tight ${view === id ? "text-cyan-300" : "text-slate-500"}`}><Icon className="h-5 w-5" /><span className="max-w-full truncate">{label}</span></button>)}
+            {mobileNavItems.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => navigateView(id)} className={`flex min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[9px] leading-tight ${view === id ? "ychat-nav-selected" : "ychat-nav-idle"}`}><Icon className="h-5 w-5" /><span className="max-w-full truncate">{label}</span></button>)}
           </nav>
         </main>
       </div>

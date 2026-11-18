@@ -69,7 +69,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">8. Data retention and deletion</h2>
             <p className="mt-2">
-              Information may be retained for as long as necessary to operate Ychat, provide requested functionality, meet legal obligations, resolve disputes, and protect the service. Where supported, account-related information may be deleted or corrected upon a valid request, subject to legal and technical requirements.
+              Information may be retained for as long as necessary to operate Ychat, provide requested functionality, meet legal obligations, resolve disputes, and protect the service. The account deletion feature is designed to allow users to permanently delete their Ychat account through Settings &gt; Delete account. Account deletion removes associated personal information, profile data, uploaded media and authentication records, except information that must be retained to comply with applicable legal obligations. Shared conversations may remain available to other participants. For users who signed in with Apple, Ychat will attempt to revoke the associated Apple authorization. Account deletion is irreversible.
             </p>
           </section>
 

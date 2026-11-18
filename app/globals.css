@@ -183,15 +183,15 @@ html[data-theme="light"] .ychat-chat-wallpaper {
 }
 
 html[data-theme="light"] .ychat-theme-option {
-  border-color: rgba(15, 23, 42, .09);
-  background: #f4f7fa;
-  color: #475569;
+  border-color: var(--mono-border);
+  background: var(--mono-surface);
+  color: var(--mono-text);
 }
 
 html[data-theme="light"] .ychat-theme-option:hover {
-  border-color: rgba(8, 155, 179, .30);
-  background: #ffffff;
-  color: #0f172a;
+  border-color: var(--mono-border);
+  background: var(--mono-hover);
+  color: var(--mono-text);
 }
 
 .ychat-theme-option {
@@ -216,17 +216,9 @@ html[data-theme="light"] .ychat-theme-option:hover {
   color: #e2e8f0;
 }
 
-.ychat-theme-option-active {
-  border-color: rgba(8,155,179,.45) !important;
-  background: var(--ychat-accent-soft) !important;
-  color: var(--ychat-accent-strong) !important;
-  box-shadow: 0 0 0 1px rgba(8,155,179,.08), 0 8px 24px rgba(8,155,179,.08);
-}
 
-html[data-theme="dark"] .ychat-theme-option-active {
-  color: #67e8f9 !important;
-  border-color: rgba(34,211,238,.45) !important;
-}
+
+
 
 .ychat-app-shell,
 .ychat-app-shell * {
@@ -553,4 +545,593 @@ html[data-theme="light"] .ychat-app-shell .bg-black\/30 {
   background: #262626 !important;
   color: #fff !important;
   opacity: 0.78;
+}
+
+
+/* YCHAT BUILD 4 CHARCOAL THEME */
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --ychat-bg: #18181b;
+  --ychat-surface: #27272a;
+  --ychat-panel: #27272a;
+  --ychat-input: #303034;
+  --ychat-border: #45454b;
+  --ychat-text: #ffffff;
+  --ychat-muted: #d4d4d8;
+}
+
+html[data-theme="dark"] body {
+  background: #18181b;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .ychat-app-shell,
+html[data-theme="dark"] .ychat-main,
+html[data-theme="dark"] .ychat-sidebar {
+  color: #ffffff;
+}
+
+html[data-theme="dark"] [class*="bg-[#06101d]"],
+html[data-theme="dark"] [class*="bg-[#07111f]"] {
+  background-color: #18181b !important;
+}
+
+html[data-theme="dark"] [class*="bg-[#0a1b2d]"],
+html[data-theme="dark"] [class*="bg-[#0b1c2f]"] {
+  background-color: #27272a !important;
+}
+
+html[data-theme="dark"] [class*="bg-[#102438]"] {
+  background-color: #303034 !important;
+}
+
+html[data-theme="dark"] .ychat-app-shell .text-slate-100,
+html[data-theme="dark"] .ychat-app-shell .text-slate-200,
+html[data-theme="dark"] .ychat-app-shell .text-slate-300 {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] .ychat-app-shell .text-slate-400,
+html[data-theme="dark"] .ychat-app-shell .text-slate-500,
+html[data-theme="dark"] .ychat-app-shell .text-slate-600 {
+  color: #d4d4d8 !important;
+}
+
+html[data-theme="dark"] .ychat-app-shell input,
+html[data-theme="dark"] .ychat-app-shell textarea {
+  background-color: #303034 !important;
+  color: #ffffff !important;
+  border-color: #45454b !important;
+}
+
+html[data-theme="dark"] .ychat-app-shell input::placeholder,
+html[data-theme="dark"] .ychat-app-shell textarea::placeholder {
+  color: #a1a1aa !important;
+}
+
+/* Official Apple-provided button artwork */
+
+.ychat-official-apple-button {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.ychat-official-apple-button img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.ychat-official-apple-button .ychat-apple-dark {
+  display: none;
+}
+
+html[data-theme="dark"] .ychat-official-apple-button .ychat-apple-light {
+  display: none;
+}
+
+html[data-theme="dark"] .ychat-official-apple-button .ychat-apple-dark {
+  display: block;
+}
+
+.ychat-official-apple-button:disabled {
+  cursor: not-allowed;
+}
+
+.ychat-official-apple-button:focus-visible {
+  outline: 2px solid #0891b2;
+  outline-offset: 4px;
+}
+
+
+/* YCHAT PREMIUM MONOCHROME V2 */
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --ychat-bg: #1c1c1e;
+  --ychat-surface: #2c2c2e;
+  --ychat-panel: #2c2c2e;
+  --ychat-input: #363638;
+  --ychat-border: #48484a;
+  --ychat-text: #ffffff;
+  --ychat-muted: #d1d1d6;
+  --ychat-accent: #d1d1d6;
+  --ychat-shadow: 0 8px 28px rgba(0,0,0,.18);
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+  --ychat-bg: #ffffff;
+  --ychat-surface: #f7f7f8;
+  --ychat-panel: #e4e4e7;
+  --ychat-input: #f4f4f5;
+  --ychat-border: #d4d4d8;
+  --ychat-text: #27272a;
+  --ychat-muted: #52525b;
+  --ychat-accent: #52525b;
+  --ychat-shadow: 0 8px 28px rgba(0,0,0,.05);
+}
+
+/* Dark backgrounds */
+
+html[data-theme="dark"] body,
+html[data-theme="dark"] .ychat-app-shell {
+  background: #1c1c1e !important;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .ychat-sidebar {
+  background: #2c2c2e !important;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .ychat-main {
+  background: #1c1c1e !important;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] [class*="bg-[#06101d]"],
+html[data-theme="dark"] [class*="bg-[#07111f]"] {
+  background-color: #1c1c1e !important;
+}
+
+html[data-theme="dark"] [class*="bg-[#0a1b2d]"],
+html[data-theme="dark"] [class*="bg-[#0b1c2f]"],
+html[data-theme="dark"] [class*="bg-[#102438]"] {
+  background-color: #2c2c2e !important;
+}
+
+/* Light backgrounds */
+
+html[data-theme="light"] body,
+html[data-theme="light"] .ychat-app-shell,
+html[data-theme="light"] .ychat-main {
+  background: #ffffff !important;
+  color: #27272a;
+}
+
+html[data-theme="light"] .ychat-sidebar {
+  background: #e4e4e7 !important;
+  color: #27272a;
+}
+
+/* Primary buttons */
+
+html[data-theme="dark"] button[class*="bg-cyan-500"],
+html[data-theme="dark"] button[class*="bg-cyan-400"] {
+  background: #d1d1d6 !important;
+  color: #1c1c1e !important;
+  border-color: #d1d1d6 !important;
+  box-shadow: 0 4px 14px rgba(0,0,0,.15) !important;
+}
+
+html[data-theme="light"] button[class*="bg-cyan-500"],
+html[data-theme="light"] button[class*="bg-cyan-400"] {
+  background: #52525b !important;
+  color: #ffffff !important;
+  border-color: #52525b !important;
+  box-shadow: 0 4px 14px rgba(0,0,0,.08) !important;
+}
+
+html[data-theme="dark"] button[class*="bg-cyan-500"]:hover:not(:disabled) {
+  background: #f4f4f5 !important;
+}
+
+html[data-theme="light"] button[class*="bg-cyan-500"]:hover:not(:disabled) {
+  background: #3f3f46 !important;
+}
+
+/* Neutral translucent accent surfaces */
+
+html[data-theme="dark"] [class*="bg-cyan-500/"],
+html[data-theme="dark"] [class*="bg-cyan-400/"] {
+  background-color: rgba(209,209,214,.12) !important;
+}
+
+html[data-theme="light"] [class*="bg-cyan-500/"],
+html[data-theme="light"] [class*="bg-cyan-400/"] {
+  background-color: rgba(63,63,70,.10) !important;
+}
+
+/* Text and icons */
+
+html[data-theme="dark"] [class*="text-cyan-"] {
+  color: #e5e5ea !important;
+}
+
+html[data-theme="light"] [class*="text-cyan-"] {
+  color: #3f3f46 !important;
+}
+
+html[data-theme="dark"] button[class*="bg-cyan-500"] * {
+  color: #1c1c1e !important;
+}
+
+html[data-theme="light"] button[class*="bg-cyan-500"] * {
+  color: #ffffff !important;
+}
+
+html[data-theme="dark"] [class*="border-cyan-"] {
+  border-color: #52525b !important;
+}
+
+html[data-theme="light"] [class*="border-cyan-"] {
+  border-color: #a1a1aa !important;
+}
+
+/* Inputs */
+
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea {
+  background-color: #363638 !important;
+  color: #ffffff !important;
+  border-color: #48484a !important;
+}
+
+html[data-theme="light"] input,
+html[data-theme="light"] textarea {
+  background-color: #f4f4f5 !important;
+  color: #27272a !important;
+  border-color: #d4d4d8 !important;
+}
+
+html[data-theme="dark"] input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+  color: #aeaeb2 !important;
+}
+
+html[data-theme="light"] input::placeholder,
+html[data-theme="light"] textarea::placeholder {
+  color: #71717a !important;
+}
+
+/* Monochrome outgoing messages */
+
+html[data-theme="dark"] [class*="bg-[#075e72]"] {
+  background: #48484a !important;
+  color: #ffffff !important;
+}
+
+html[data-theme="light"] [class*="bg-[#075e72]"] {
+  background: #52525b !important;
+  color: #ffffff !important;
+}
+
+/* Preserve official Apple artwork */
+
+.ychat-official-apple-button {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+.ychat-official-apple-button img {
+  filter: none !important;
+}
+
+
+
+/* YCHAT FINAL MONOCHROME V3 */
+
+/* ====================================
+   DARK AND LIGHT DESIGN TOKENS
+   ==================================== */
+
+html[data-theme="dark"] {
+  --mono-bg: #1c1c1c;
+  --mono-surface: #292929;
+  --mono-menu: #292929;
+  --mono-hover: #383838;
+  --mono-text: #ffffff;
+  --mono-secondary: #d4d4d4;
+  --mono-border: #444444;
+  --mono-button: #ffffff;
+  --mono-button-text: #202020;
+  --mono-button-hover: #e5e5e5;
+  --mono-icon-bg: #383838;
+
+  --ychat-bg: var(--mono-bg);
+  --ychat-surface: var(--mono-surface);
+  --ychat-panel: var(--mono-menu);
+  --ychat-text: var(--mono-text);
+  --ychat-muted: var(--mono-secondary);
+  --ychat-border: var(--mono-border);
+  --ychat-input: #303030;
+  --ychat-accent: #ffffff;
+}
+
+html[data-theme="light"] {
+  --mono-bg: #ffffff;
+  --mono-surface: #f5f5f5;
+  --mono-menu: #ededed;
+  --mono-hover: #e0e0e0;
+  --mono-text: #202020;
+  --mono-secondary: #525252;
+  --mono-border: #d6d6d6;
+  --mono-button: #303030;
+  --mono-button-text: #ffffff;
+  --mono-button-hover: #484848;
+  --mono-icon-bg: #e4e4e4;
+
+  --ychat-bg: var(--mono-bg);
+  --ychat-surface: var(--mono-surface);
+  --ychat-panel: var(--mono-menu);
+  --ychat-text: var(--mono-text);
+  --ychat-muted: var(--mono-secondary);
+  --ychat-border: var(--mono-border);
+  --ychat-input: #f3f3f3;
+  --ychat-accent: #303030;
+}
+
+/* ====================================
+   WORKSPACE AND SIDEBAR
+   ==================================== */
+
+html[data-theme] .ychat-app-shell,
+html[data-theme] .ychat-app-shell .ychat-main {
+  background: var(--mono-bg) !important;
+  color: var(--mono-text) !important;
+  border-color: var(--mono-border) !important;
+}
+
+html[data-theme] .ychat-app-shell .ychat-sidebar {
+  background: var(--mono-menu) !important;
+  color: var(--mono-text) !important;
+  border-color: var(--mono-border) !important;
+}
+
+/* ====================================
+   REMOVE BLUE AND CYAN GRADIENTS
+   ==================================== */
+
+html[data-theme] .ychat-app-shell [class*="bg-gradient"],
+html[data-theme] .ychat-app-shell [class*="bg-linear"],
+html[data-theme] .ychat-app-shell [class*="from-cyan"],
+html[data-theme] .ychat-app-shell [class*="to-blue"],
+html[data-theme] .ychat-app-shell [class*="from-blue"],
+html[data-theme] .ychat-app-shell [class*="linear-gradient"],
+html[data-theme] .ychat-app-shell [class*="radial-gradient"] {
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* ====================================
+   WHITE / CHARCOAL PRIMARY BUTTONS
+   ==================================== */
+
+html[data-theme] .ychat-app-shell button[class*="bg-gradient"],
+html[data-theme] .ychat-app-shell button[class*="bg-linear"],
+html[data-theme] .ychat-app-shell button[class*="from-cyan"],
+html[data-theme] .ychat-app-shell button[class*="bg-cyan-500"],
+html[data-theme] .ychat-app-shell button[class*="bg-blue-500"],
+html[data-theme] .ychat-app-shell button[class*="bg-[#075e72]"],
+html[data-theme] button[class~="bg-cyan-500"] {
+  background: var(--mono-button) !important;
+  background-image: none !important;
+  color: var(--mono-button-text) !important;
+  border-color: var(--mono-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] .ychat-app-shell button[class*="bg-gradient"] *,
+html[data-theme] .ychat-app-shell button[class*="bg-linear"] *,
+html[data-theme] .ychat-app-shell button[class*="from-cyan"] *,
+html[data-theme] .ychat-app-shell button[class*="bg-cyan-500"] *,
+html[data-theme] .ychat-app-shell button[class*="bg-blue-500"] * {
+  color: var(--mono-button-text) !important;
+}
+
+html[data-theme] .ychat-app-shell button[class*="bg-gradient"]:hover:not(:disabled),
+html[data-theme] .ychat-app-shell button[class*="bg-linear"]:hover:not(:disabled),
+html[data-theme] .ychat-app-shell button[class*="bg-cyan-500"]:hover:not(:disabled) {
+  background: var(--mono-button-hover) !important;
+  color: var(--mono-button-text) !important;
+}
+
+/* ====================================
+   SETTINGS ICONS
+   ==================================== */
+
+html[data-theme] .ychat-app-shell div[class*="from-cyan"],
+html[data-theme] .ychat-app-shell span[class*="from-cyan"],
+html[data-theme] .ychat-app-shell div[class*="bg-cyan-500"],
+html[data-theme] .ychat-app-shell span[class*="bg-cyan-500"] {
+  background: var(--mono-icon-bg) !important;
+  background-image: none !important;
+  color: var(--mono-text) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] .ychat-app-shell div[class*="from-cyan"] svg,
+html[data-theme] .ychat-app-shell span[class*="from-cyan"] svg {
+  color: var(--mono-text) !important;
+}
+
+/* ====================================
+   ACTIVE NAVIGATION AND FILTERS
+   ==================================== */
+
+html[data-theme] .ychat-app-shell nav button[aria-current="page"],
+html[data-theme] .ychat-app-shell nav a[aria-current="page"],
+html[data-theme] .ychat-app-shell nav button[aria-pressed="true"],
+html[data-theme] .ychat-app-shell nav button[class*="from-cyan"],
+html[data-theme] .ychat-app-shell button[aria-selected="true"] {
+  background: var(--mono-button) !important;
+  background-image: none !important;
+  color: var(--mono-button-text) !important;
+  border-color: var(--mono-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] .ychat-app-shell nav [aria-current="page"] *,
+html[data-theme] .ychat-app-shell nav button[aria-pressed="true"] *,
+html[data-theme] .ychat-app-shell nav button[class*="from-cyan"] *,
+html[data-theme] .ychat-app-shell button[aria-selected="true"] * {
+  color: var(--mono-button-text) !important;
+}
+
+/* Fix unreadable pale filter buttons */
+
+html[data-theme="dark"] .ychat-app-shell button[class~="bg-white"],
+html[data-theme="dark"] .ychat-app-shell button[class~="bg-slate-100"],
+html[data-theme="dark"] .ychat-app-shell button[class~="bg-slate-50"] {
+  background: #ffffff !important;
+  color: #202020 !important;
+}
+
+html[data-theme="dark"] .ychat-app-shell button[class~="bg-white"] *,
+html[data-theme="dark"] .ychat-app-shell button[class~="bg-slate-100"] *,
+html[data-theme="dark"] .ychat-app-shell button[class~="bg-slate-50"] * {
+  color: #202020 !important;
+}
+
+html[data-theme="light"] .ychat-app-shell button[class~="bg-white"],
+html[data-theme="light"] .ychat-app-shell button[class~="bg-slate-100"],
+html[data-theme="light"] .ychat-app-shell button[class~="bg-slate-50"] {
+  background: #e4e4e4 !important;
+  color: #202020 !important;
+}
+
+/* ====================================
+   STANDARD TEXT, ICONS AND BORDERS
+   ==================================== */
+
+html[data-theme] .ychat-app-shell [class*="text-cyan-"],
+html[data-theme] .ychat-app-shell [class*="text-blue-"] {
+  color: var(--mono-text) !important;
+}
+
+html[data-theme] .ychat-app-shell [class*="border-cyan-"],
+html[data-theme] .ychat-app-shell [class*="border-blue-"] {
+  border-color: var(--mono-border) !important;
+}
+
+html[data-theme] .ychat-app-shell input,
+html[data-theme] .ychat-app-shell textarea {
+  background: var(--ychat-input) !important;
+  color: var(--mono-text) !important;
+  border-color: var(--mono-border) !important;
+}
+
+html[data-theme] .ychat-app-shell input::placeholder,
+html[data-theme] .ychat-app-shell textarea::placeholder {
+  color: var(--mono-secondary) !important;
+}
+
+/* Preserve readable button foregrounds */
+
+html[data-theme] .ychat-app-shell button[class*="from-cyan"] *,
+html[data-theme] .ychat-app-shell button[class*="bg-cyan-500"] *,
+html[data-theme] .ychat-app-shell nav button[class*="from-cyan"] * {
+  color: var(--mono-button-text) !important;
+}
+
+/* Keep critical deletion buttons red */
+
+html[data-theme] .ychat-app-shell button[class~="bg-rose-600"] {
+  background: #be123c !important;
+  color: #ffffff !important;
+}
+
+html[data-theme] .ychat-app-shell button[class~="bg-rose-600"] * {
+  color: #ffffff !important;
+}
+
+/* Preserve original official Apple artwork */
+
+.ychat-official-apple-button {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.ychat-official-apple-button img {
+  filter: none !important;
+}
+
+/* Ychat component-level monochrome styling */
+
+html[data-theme] .ychat-brand-tile {
+  background: var(--mono-hover) !important;
+  background-image: none !important;
+  border-color: var(--mono-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] .ychat-nav-selected,
+html[data-theme] .ychat-theme-option[aria-pressed="true"] {
+  background: var(--mono-button) !important;
+  background-image: none !important;
+  color: var(--mono-button-text) !important;
+  border-color: var(--mono-button) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] .ychat-nav-selected *,
+html[data-theme] .ychat-theme-option[aria-pressed="true"] * {
+  color: var(--mono-button-text) !important;
+}
+
+html[data-theme] .ychat-theme-option[aria-pressed="false"],
+html[data-theme] .ychat-nav-idle {
+  background: var(--mono-hover) !important;
+  color: var(--mono-text) !important;
+  border-color: var(--mono-border) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme] .ychat-theme-option[aria-pressed="false"] * {
+  color: var(--mono-text) !important;
+}
+
+html[data-theme] .ychat-neutral-icon {
+  color: var(--mono-text) !important;
+}
+
+html[data-theme="dark"] {
+  --ychat-accent-strong: #ffffff;
+  --ychat-accent-soft: #383838;
+  --ychat-surface-2: #303030;
+  --ychat-surface-3: #383838;
+  --ychat-text-2: #d4d4d4;
+  --ychat-text-3: #b5b5b5;
+}
+
+html[data-theme="light"] {
+  --ychat-accent-strong: #303030;
+  --ychat-accent-soft: #e4e4e4;
+  --ychat-surface-2: #ededed;
+  --ychat-surface-3: #e4e4e4;
+  --ychat-text-2: #404040;
+  --ychat-text-3: #525252;
 }

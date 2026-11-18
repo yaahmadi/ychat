@@ -1,4 +1,5 @@
 ﻿import { NextResponse } from "next/server";
+import { storeAppleRefreshToken } from "@/lib/supabase/apple-token-store";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
 function getConfiguredAppUrl(request: Request) {
@@ -42,10 +43,27 @@ export async function GET(request: Request) {
 
   try {
     const supabase = await createServerSupabaseClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
       return loginError(appUrl, error.message);
+    }
+
+
+    const session = data.session;
+
+    if (
+      session?.user?.app_metadata?.provider === "apple" &&
+      session.provider_refresh_token
+    ) {
+      try {
+        await storeAppleRefreshToken(
+          session.user.id,
+          session.provider_refresh_token
+        );
+      } catch {
+        console.error("Apple authorization storage failed.");
+      }
     }
 
     return NextResponse.redirect(new URL(next, appUrl));

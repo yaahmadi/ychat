@@ -22,7 +22,7 @@ export type ConversationRow = {
   id: string;
   type: "direct" | "group";
   title?: string | null;
-  created_by: string;
+  created_by: string | null;
   created_at?: string | null;
   updated_at?: string | null;
   conversation_members?: ConversationMemberRow[];
